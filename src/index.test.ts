@@ -2,6 +2,8 @@ import { renderHook, cleanup } from "@testing-library/react-hooks";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { useSearchParamState } from "./index";
 
+// TODO: write more tests!
+
 afterEach(cleanup);
 
 describe("default state", () => {

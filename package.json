@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "build:watch": "tsc && vite build --watch",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "prettier": "prettier --write src/**",
     "lint": "eslint src/**"
