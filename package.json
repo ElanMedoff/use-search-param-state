@@ -1,0 +1,51 @@
+{
+  "name": "use-search-param-state",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.umd.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.mjs",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc && vite build",
+    "build:watch": "tsc && vite build --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.4",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@types/node": "^20.8.2",
+    "@types/react": "^16.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@vitejs/plugin-react": "^4.1.0",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-config-standard-with-typescript": "^39.1.0",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-n": "^16.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.33.2",
+    "jsdom": "^22.1.0",
+    "prettier": "^3.0.3",
+    "react-test-renderer": "^16.14.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5",
+    "vitest": "^0.34.6",
+    "vitest-dom": "^0.1.1"
+  },
+  "dependencies": {
+    "react": "^16.9.0"
+  }
+}
