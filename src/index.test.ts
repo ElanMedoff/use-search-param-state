@@ -17,7 +17,7 @@ describe("default state", () => {
       const { result } = renderHook(() =>
         useSearchParamState("counter", 0, {
           serverSideHref: "http://localhost:3000/?counter=1",
-        })
+        }),
       );
       expect(result.current[0]).toBe(1);
     });
@@ -25,7 +25,7 @@ describe("default state", () => {
     it("without a serverSideHref, it should use the initialState arg and call onError", () => {
       const onError = vi.fn();
       const { result } = renderHook(() =>
-        useSearchParamState("counter", 0, { onError })
+        useSearchParamState("counter", 0, { onError }),
       );
       expect(result.current[0]).toBe(0);
       expect(onError).toHaveBeenCalledTimes(1);

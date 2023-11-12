@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 // 1. detect changes from the url directly. what to do in these cases? anything?
 // 2. run linting, prettier on commit
 // 3. allow for dehydrate to act as a validator and throw
-// 4. figure out react as a dependency - peer?
+
+const hello = 5;
 
 export interface UseParamStateOptions<T> {
   dehydrate?: (val: T) => string;
@@ -22,12 +23,12 @@ type BuildUseParamStateOptions = Omit<
 >;
 
 export function buildUseParamState(
-  buildOptions: BuildUseParamStateOptions = {}
+  buildOptions: BuildUseParamStateOptions = {},
 ) {
   return function useParamState<T>(
     searchParam: string,
     initialState: T,
-    hookOptions: UseParamStateOptions<T> = {}
+    hookOptions: UseParamStateOptions<T> = {},
   ) {
     const dehydrate =
       hookOptions.dehydrate ?? ((val: T) => JSON.stringify(val));
@@ -59,7 +60,7 @@ export function buildUseParamState(
         return hydrate(
           sanitize instanceof Function
             ? sanitize(initialParamState)
-            : initialParamState
+            : initialParamState,
         );
       } catch (e) {
         onError?.(e);
@@ -84,7 +85,7 @@ export function buildUseParamState(
       if (typeof window === "undefined") {
         if (serverSideHref === undefined) {
           throw new Error(
-            "Window is undefined and no `serverSideHref` argument is provided"
+            "Window is undefined and no `serverSideHref` argument is provided",
           );
         }
         return serverSideHref;
