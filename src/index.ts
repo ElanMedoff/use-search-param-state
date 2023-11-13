@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
+import { isWindowUndefined } from "./helpers";
 
 // TODO
 // 1. detect changes from the url directly. what to do in these cases? anything?
 // 2. allow for dehydrate to act as a validator and throw
+// 3. figure out versioning
 
 export interface UseParamStateOptions<T> {
   dehydrate?: (val: T) => string;
   hydrate?: (val: string) => T;
+  serverSideHref?: string;
   onError?: (e: unknown) => void;
   rollbackOnError?: boolean;
   pushState?: (href: string) => void;
-  serverSideHref?: string;
   sanitize?: (unsanitized: string) => string;
 }
 
 type BuildUseParamStateOptions = Omit<
   UseParamStateOptions<unknown>,
-  "dehydrate" | "hydrate"
+  "dehydrate" | "hydrate" | "serverSideHref"
 >;
 
 export function buildUseParamState(
@@ -33,8 +35,7 @@ export function buildUseParamState(
     const onError = hookOptions.onError ?? buildOptions.onError;
     const rollbackOnError =
       hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
-    const serverSideHref =
-      hookOptions.serverSideHref ?? buildOptions.serverSideHref;
+    const serverSideHref = hookOptions.serverSideHref;
     const pushState =
       hookOptions.pushState ??
       buildOptions.pushState ??
@@ -79,7 +80,7 @@ export function buildUseParamState(
     }, []);
 
     function getHrefOrThrow() {
-      if (typeof window === "undefined") {
+      if (isWindowUndefined()) {
         if (serverSideHref === undefined) {
           throw new Error(
             "Window is undefined and no `serverSideHref` argument is provided"
@@ -120,7 +121,7 @@ export function buildUseParamState(
       }
 
       const { success } = safelySetUrlState(searchParam, newVal);
-      if (success) {
+      if (success || !rollbackOnError) {
         setState(newVal);
       }
     }
