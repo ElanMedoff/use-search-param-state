@@ -18,6 +18,10 @@
     "type": "git",
     "url": "https://github.com/ElanMedoff/use-search-param-state"
   },
+  "bugs": {
+    "url": "https://github.com/ElanMedoff/use-search-param-state/issues"
+  },
+  "homepage": "https://github.com/ElanMedoff/use-search-param-state#readme",
   "license": "MIT",
   "scripts": {
     "build": "tsc && vite build",
