@@ -20,7 +20,7 @@
     "build:watch": "tsc && vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "prettier": "prettier --write src/**",
+    "prettier": "prettier src/** --write --config .prettierrc",
     "lint": "eslint src/**"
   },
   "devDependencies": {

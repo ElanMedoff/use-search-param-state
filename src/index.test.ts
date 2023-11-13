@@ -32,7 +32,7 @@ describe("useSearchParamState", () => {
         const { result } = renderHook(() =>
           useSearchParamState("counter", 0, {
             serverSideHref: "http://localhost:3000/?counter=1",
-          }),
+          })
         );
         expect(result.current[0]).toBe(1);
       });
@@ -40,7 +40,7 @@ describe("useSearchParamState", () => {
       it("without a serverSideHref, it should use the initialState arg and call onError", () => {
         const onError = vi.fn();
         const { result } = renderHook(() =>
-          useSearchParamState("counter", 0, { onError }),
+          useSearchParamState("counter", 0, { onError })
         );
         expect(result.current[0]).toBe(0);
         expect(onError).toHaveBeenCalledTimes(1);
@@ -68,7 +68,7 @@ describe("useSearchParamState", () => {
     function expectSetStateToBehaveProperly(
       setStateArg: Parameters<
         ReturnType<typeof useSearchParamState<number>>[1]
-      >[0],
+      >[0]
     ) {
       it("when setting the url succeeds, it should set the state", async () => {
         const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -79,7 +79,7 @@ describe("useSearchParamState", () => {
         });
         expect(result.current[0]).toBe(10);
         expectPushStateToHaveBeenCalledWith(
-          "http://localhost:3000/?counter=10",
+          "http://localhost:3000/?counter=10"
         );
       });
 
@@ -90,7 +90,7 @@ describe("useSearchParamState", () => {
               pushState: () => {
                 throw new Error();
               },
-            }),
+            })
           );
           expect(result.current[0]).toBe(0);
           act(() => {
@@ -106,7 +106,7 @@ describe("useSearchParamState", () => {
                 throw new Error();
               },
               rollbackOnError: true,
-            }),
+            })
           );
           expect(result.current[0]).toBe(0);
           act(() => {
