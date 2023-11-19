@@ -1,6 +1,11 @@
-import { renderHook, cleanup, act } from "@testing-library/react-hooks";
+import React from "react";
+import {
+  renderHook as _renderHook,
+  cleanup,
+  act,
+} from "@testing-library/react-hooks";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
-import { useSearchParamState } from "./index";
+import { SearchParamStateProvider, useSearchParamState } from "./index";
 import * as helpers from "./helpers";
 
 // TODO: write tests on options, build options vs hook options
@@ -9,6 +14,16 @@ afterEach(cleanup);
 
 function expectPushStateToHaveBeenCalledWith(href: string) {
   expect(window.history.pushState).toHaveBeenCalledWith({}, "", href);
+}
+
+function wrappedRenderHook<TProps, TResult>(
+  cb: Parameters<typeof _renderHook<TProps, TResult>>[0]
+) {
+  const wrapper = ({ children }: { children?: React.ReactNode }) => (
+    <SearchParamStateProvider>{children}</SearchParamStateProvider>
+  );
+
+  return _renderHook<TProps, TResult>(cb, { wrapper });
 }
 
 describe("useSearchParamState", () => {
@@ -29,7 +44,7 @@ describe("useSearchParamState", () => {
       });
 
       it("with a serverSideHref, it should dehydrate the search param", () => {
-        const { result } = renderHook(() =>
+        const { result } = wrappedRenderHook(() =>
           useSearchParamState("counter", 0, {
             serverSideHref: "http://localhost:3000/?counter=1",
           })
@@ -39,7 +54,7 @@ describe("useSearchParamState", () => {
 
       it("without a serverSideHref, it should use the initialState arg and call onError", () => {
         const onError = vi.fn();
-        const { result } = renderHook(() =>
+        const { result } = wrappedRenderHook(() =>
           useSearchParamState("counter", 0, { onError })
         );
         expect(result.current[0]).toBe(0);
@@ -48,7 +63,9 @@ describe("useSearchParamState", () => {
     });
 
     it("with no search param in the url, it should use the initialState arg and set the search param", () => {
-      const { result } = renderHook(() => useSearchParamState("counter", 0));
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0)
+      );
       expect(result.current[0]).toBe(0);
       expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=0");
     });
@@ -59,19 +76,19 @@ describe("useSearchParamState", () => {
         value: { href: "http://localhost:3000/?counter=1" },
       });
 
-      const { result } = renderHook(() => useSearchParamState("counter", 0));
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0)
+      );
       expect(result.current[0]).toBe(1);
     });
   });
 
   describe("setState", () => {
-    function expectSetStateToBehaveProperly(
-      setStateArg: Parameters<
-        ReturnType<typeof useSearchParamState<number>>[1]
-      >[0]
-    ) {
+    function expectSetStateToBehaveProperly(setStateArg: any) {
       it("when setting the url succeeds, it should set the state", async () => {
-        const { result } = renderHook(() => useSearchParamState("counter", 0));
+        const { result } = wrappedRenderHook(() =>
+          useSearchParamState("counter", 0)
+        );
         expect(result.current[0]).toBe(0);
         expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=0");
         act(() => {
@@ -85,7 +102,7 @@ describe("useSearchParamState", () => {
 
       describe("when setting the url fails", () => {
         it("should still set the state", () => {
-          const { result } = renderHook(() =>
+          const { result } = wrappedRenderHook(() =>
             useSearchParamState("counter", 0, {
               pushState: () => {
                 throw new Error();
@@ -100,7 +117,7 @@ describe("useSearchParamState", () => {
         });
 
         it("when rollbackOnError is true, it should not set the state", () => {
-          const { result } = renderHook(() =>
+          const { result } = wrappedRenderHook(() =>
             useSearchParamState("counter", 0, {
               pushState: () => {
                 throw new Error();

@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import React from "react";
 import { isWindowUndefined } from "./helpers";
 
 // TODO
 // 1. detect changes from the url directly. what to do in these cases? anything?
 // 2. allow for dehydrate to act as a validator and throw
-// 3. figure out versioning
 
-export interface UseParamStateOptions<T> {
+export interface UseSearchParamStateOptions<T> {
   dehydrate?: (val: T) => string;
   hydrate?: (val: string) => T;
   serverSideHref?: string;
@@ -16,18 +15,51 @@ export interface UseParamStateOptions<T> {
   sanitize?: (unsanitized: string) => string;
 }
 
-type BuildUseParamStateOptions = Omit<
-  UseParamStateOptions<unknown>,
+type UseBuildSearchParamStateOptions = Omit<
+  UseSearchParamStateOptions<unknown>,
   "dehydrate" | "hydrate" | "serverSideHref"
 >;
+type UseSearchParamStateParams<T> = [
+  searchParam: string,
+  initialState: T,
+  hookOptions?: UseSearchParamStateOptions<T>,
+];
 
-export function buildUseParamState(
-  buildOptions: BuildUseParamStateOptions = {}
+type UseSearchParamStateType = <T>(
+  ...args: UseSearchParamStateParams<T>
+) => readonly [T, (newVal: T | ((currVal: T) => T)) => void];
+
+const SearchParamStateContext = React.createContext<
+  UseSearchParamStateType | undefined
+>(undefined);
+
+function SearchParamStateProvider({
+  children,
+  options: buildOptions = {},
+}: {
+  children: React.ReactNode;
+  options?: UseBuildSearchParamStateOptions;
+}) {
+  const useSearchParamState = useBuildSearchParamState(buildOptions);
+
+  return (
+    <SearchParamStateContext.Provider value={useSearchParamState}>
+      {children}
+    </SearchParamStateContext.Provider>
+  );
+}
+
+function useBuildSearchParamState(
+  buildOptions: UseBuildSearchParamStateOptions = {}
 ) {
-  return function useParamState<T>(
+  const [globalSearchParams, setGlobalSearchParams] = React.useState<
+    Record<string, any>
+  >({});
+
+  return function useSearchParamState<T>(
     searchParam: string,
     initialState: T,
-    hookOptions: UseParamStateOptions<T> = {}
+    hookOptions: UseSearchParamStateOptions<T> = {}
   ) {
     const dehydrate =
       hookOptions.dehydrate ?? ((val: T) => JSON.stringify(val));
@@ -44,7 +76,7 @@ export function buildUseParamState(
       });
     const sanitize = hookOptions.sanitize ?? buildOptions.sanitize;
 
-    const [state, setState] = useState<T>(() => {
+    const [state, setState] = React.useState<T>(() => {
       try {
         const href = getHrefOrThrow();
         const url = new URL(href);
@@ -66,18 +98,14 @@ export function buildUseParamState(
       }
     });
 
-    useEffect(() => {
-      window.addEventListener("popstate", function () {
-        // TODO: set state?
-        console.log("Search params changed:", window.location.search);
+    React.useEffect(() => {
+      setGlobalSearchParams((prev) => {
+        return {
+          ...prev,
+          [searchParam]: state,
+        };
       });
-
-      window.addEventListener("hashchange", function () {
-        // TODO: set state?
-        console.log("Search params changed:", window.location.search);
-        console.log("Hash or search params changed:", window.location.search);
-      });
-    }, []);
+    }, [state, searchParam]);
 
     function getHrefOrThrow() {
       if (isWindowUndefined()) {
@@ -108,15 +136,14 @@ export function buildUseParamState(
 
     function wrappedSetState(newVal: T | ((currVal: T) => T)) {
       if (newVal instanceof Function) {
-        setState((currVal) => {
-          const { success } = safelySetUrlState(searchParam, newVal(currVal));
+        const currVal = globalSearchParams[searchParam];
+        const { success } = safelySetUrlState(searchParam, newVal(currVal));
 
-          if (!success && rollbackOnError) {
-            return currVal;
-          } else {
-            return newVal(currVal);
-          }
-        });
+        if (!success && rollbackOnError) {
+          setState(currVal);
+        } else {
+          setState(newVal(currVal));
+        }
         return;
       }
 
@@ -126,8 +153,22 @@ export function buildUseParamState(
       }
     }
 
-    return [state, wrappedSetState] as const;
+    return [globalSearchParams[searchParam] as T, wrappedSetState] as const;
   };
 }
 
-export const useSearchParamState = buildUseParamState();
+function useSearchParamStateContext<T>(...args: UseSearchParamStateParams<T>) {
+  const context = React.useContext(SearchParamStateContext);
+  if (context === undefined) {
+    throw new Error(
+      "useSearchParamStateContext must be used within a SearchParamStateProvider"
+    );
+  }
+  return context(...args);
+}
+
+export {
+  SearchParamStateContext,
+  useSearchParamStateContext as useSearchParamState,
+  SearchParamStateProvider,
+};
