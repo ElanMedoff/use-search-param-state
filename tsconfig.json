@@ -1,15 +1,17 @@
 {
-  "include": ["./src/**/*.ts", "./src/**/*.tsx"],
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "noEmit": true,
     "strict": true,
-    "allowSyntheticDefaultImports": true,
-    "noImplicitAny": true,
-    "target": "es5",
-    "jsx": "react",
-    "allowJs": false,
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "rootDir": "./src",
-    "outDir": "./dist"
-  }
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "jsx": "react"
+  },
+  "include": ["src"]
 }
