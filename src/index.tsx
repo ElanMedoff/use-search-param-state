@@ -7,10 +7,10 @@ function useEffectOnce(effect: React.EffectCallback) {
 }
 
 interface UseSearchParamStateOptions<T> {
-  stringify?: (val: T) => string;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => T;
   validate?: (unvalidated: unknown) => T;
+  stringify?: (val: T) => string;
   serverSideURL?: string | URL;
   rollbackOnError?: boolean;
   pushState?: (href: string) => void;
@@ -160,6 +160,8 @@ function useBuildSearchParamState(
       } catch (e) {
         hookOptions.onError?.(e);
         buildOptions.onError?.(e);
+
+        safelySetUrlState(searchParam, initialState);
         return initialState;
       }
     }, [maybeGetHref, safelySetUrlState, searchParam]);
@@ -185,14 +187,20 @@ function useBuildSearchParamState(
       setIsFirstRender(false);
     });
 
+    const currSearchParamState = isFirstRender
+      ? serverState
+      : (globalSearchParams[searchParam] as T);
+
     const wrappedSetState = React.useCallback(
       (newVal: T | ((currVal: T) => T)) => {
         if (newVal instanceof Function) {
-          const currVal = globalSearchParams[searchParam];
-          const { success } = safelySetUrlState(searchParam, newVal(currVal));
+          const { success } = safelySetUrlState(
+            searchParam,
+            newVal(currSearchParamState)
+          );
 
           if (success || !rollbackOnError) {
-            setState(newVal(currVal));
+            setState(newVal(currSearchParamState));
           }
           return;
         }
@@ -202,13 +210,16 @@ function useBuildSearchParamState(
           setState(newVal);
         }
       },
-      [rollbackOnError, safelySetUrlState, searchParam, setState]
+      [
+        rollbackOnError,
+        safelySetUrlState,
+        searchParam,
+        setState,
+        currSearchParamState,
+      ]
     );
 
-    const stateToReturn = isFirstRender
-      ? serverState
-      : (globalSearchParams[searchParam] as T);
-    return [stateToReturn, wrappedSetState] as const;
+    return [currSearchParamState, wrappedSetState] as const;
   };
 }
 

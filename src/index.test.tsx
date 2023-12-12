@@ -1,9 +1,7 @@
 import React from "react";
-import {
-  renderHook as _renderHook,
-  cleanup,
-  act,
-} from "@testing-library/react-hooks";
+import { render, cleanup, act, screen } from "@testing-library/react";
+import { renderHook as _renderHook } from "@testing-library/react-hooks";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { SearchParamStateProvider, useSearchParamState } from "./index";
 import type { UseBuildSearchParamStateOptions } from "./index";
@@ -62,6 +60,18 @@ describe("useSearchParamState", () => {
         );
         expect(result.current[0]).toBe(0);
       });
+    });
+
+    it("when sanitize, parse, or validate errors, it should use the initialState arg and set the search param", () => {
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          parse: () => {
+            throw new Error();
+          },
+        })
+      );
+      expect(result.current[0]).toBe(0);
+      expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=0");
     });
 
     it("with no search param in the url, it should use the initialState arg and set the search param", () => {
@@ -310,7 +320,132 @@ describe("useSearchParamState", () => {
     });
   });
 
-  // TODO: test build options overriding hook options
-  // TODO: test use context failing
-  // TODO: test using multiple hooks
+  describe("build options with overriding hook options", () => {
+    beforeEach(() => {
+      Object.defineProperty(window, "location", {
+        writable: true,
+        value: { href: "http://localhost:3000/?counter=1" },
+      });
+    });
+
+    it("when a stringify option is passed, it should use the hook option", () => {
+      buildOptions = {
+        stringify: () => "11",
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          stringify: () => "10",
+        })
+      );
+      act(() => {
+        result.current[1](1);
+      });
+      expect(result.current[0]).toBe(1);
+      expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=10");
+    });
+
+    it("when a sanitize option is passed, it should use the hook option", () => {
+      buildOptions = {
+        sanitize: (unsanitized) => `${unsanitized}1`,
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          sanitize: (unsanitized) => `${unsanitized}2`,
+        })
+      );
+      expect(result.current[0]).toBe(12);
+    });
+
+    it("when a parse option is passed, it should use the hook option", () => {
+      buildOptions = {
+        parse: (unparsed) => JSON.parse(unparsed) + 2,
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          parse: (unparsed) => JSON.parse(unparsed) + 1,
+        })
+      );
+      expect(result.current[0]).toBe(2);
+    });
+
+    it("when a pushState option is passed, it should use the hook option", () => {
+      const buildPushState = vi.fn();
+      const hookPushState = vi.fn();
+      buildOptions = {
+        pushState: buildPushState,
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          pushState: hookPushState,
+        })
+      );
+      act(() => {
+        result.current[1](1);
+      });
+      expect(result.current[0]).toBe(1);
+      expect(hookPushState).toHaveBeenCalledWith(
+        "http://localhost:3000/?counter=1"
+      );
+      expect(buildPushState).not.toHaveBeenCalled();
+    });
+
+    it("when an onError option is passed, it should use both options", () => {
+      const hookOnError = vi.fn();
+      const buildOnError = vi.fn();
+      buildOptions = {
+        onError: buildOnError,
+      };
+      const schema = z.string();
+      wrappedRenderHook(() =>
+        useSearchParamState("counter", 0 as any as string, {
+          validate: schema.parse,
+          onError: hookOnError,
+        })
+      );
+      expect(buildOnError).toHaveBeenCalledOnce();
+      expect(hookOnError).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("multiple hooks sharing a single param should both mutate the same param", async () => {
+    function Parent() {
+      return (
+        <SearchParamStateProvider>
+          <Child />
+        </SearchParamStateProvider>
+      );
+    }
+    function Child() {
+      const [counter1, setCounter1] = useSearchParamState("counter", 0);
+      const [counter2, setCounter2] = useSearchParamState("counter", 0);
+
+      return (
+        <div>
+          <span>{counter1}</span>
+          <span>{counter2}</span>
+          <button
+            onClick={() => {
+              setCounter1((p) => p + 1);
+            }}
+          >
+            increase counter1
+          </button>
+          <button
+            onClick={() => {
+              setCounter2((p) => p + 1);
+            }}
+          >
+            increase counter2
+          </button>
+        </div>
+      );
+    }
+
+    render(<Parent />);
+    expect(screen.getAllByText("0")).toHaveLength(2);
+    await userEvent.click(screen.getByText("increase counter1"));
+    expect(screen.getAllByText("1")).toHaveLength(2);
+    await userEvent.click(screen.getByText("increase counter2"));
+    expect(screen.getAllByText("2")).toHaveLength(2);
+  });
 });
