@@ -24,8 +24,7 @@
   "homepage": "https://github.com/ElanMedoff/use-search-param-state#readme",
   "license": "MIT",
   "scripts": {
-    "build-types": "tsc --project ./tsconfig.types.json",
-    "build": "tsc && vite build && npm run build-types",
+    "build": "tsc && vite build",
     "deploy": "npm run build && npm publish",
     "test": "vitest run",
     "test:watch": "vitest --watch",

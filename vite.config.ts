@@ -13,7 +13,16 @@ export default defineConfig({
       name: "useSearchParamState",
     },
     rollupOptions: {
-      plugins: [typescript(), react()],
+      plugins: [
+        typescript({
+          compilerOptions: {
+            declaration: true,
+            outDir: "./dist",
+          },
+          include: "./src/index.tsx",
+        }),
+        react(),
+      ],
       external: ["react"],
       output: {
         globals: {

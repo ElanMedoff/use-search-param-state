@@ -1,10 +1,12 @@
 # useSearchParamState
 
-⚠️ Warning: In progress!
-
-A React hook with a read-write interface to safely and easily synchronize React state with URL search params.
+A hook to synchronize React state with URL search params.
 
 ---
+
+[![npm version](https://badge.fury.io/js/use-search-param-state.svg)](https://badge.fury.io/js/use-search-param-state)
+<a href="https://pkg-size.dev/use-search-param-state?no-peers"><img src="https://pkg-size.dev/badge/install/16111" title="Install size for use-search-param-state"></a>
+<a href="https://pkg-size.dev/use-search-param-state?no-peers"><img src="https://pkg-size.dev/badge/bundle/2098" title="Bundle size for use-search-param-state"></a>
 
 ## Basic usage
 
@@ -138,7 +140,11 @@ A function with the following type: `(val: T) => string`.
 `stringify` defaults to:
 
 ```tsx
-(val: T) => JSON.stringify(val);
+function defaultStringify<T>(val: T) {
+  // avoid wrapping strings in quotes
+  if (typeof val === "string") return val;
+  return JSON.stringify(val);
+}
 ```
 
 ### `serverSideURL`
@@ -162,7 +168,7 @@ export const getServerSideProps: GetServerSideProps = ({ req }) => {
 export default function Home({
   serverSideURL,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  const counter = useSearchParamState("counter", {
+  const [counter] = useSearchParamState("counter", 0, {
     serverSideURL,
   });
 
@@ -177,7 +183,9 @@ Note that if no `serverSideURL` option is passed and `window` is `undefined`, yo
 
 A `boolean`.
 
-When calling the `setState` function returned by `useSearchParamState`, `pushState` will be called to set the URL search param with the latest React state value. If setting the search param in the URL throws an error, and `rollbackOnError` is set to `true`, the local React state will "rollback" to it's previous value.
+When calling the `setState` function returned by `useSearchParamState`, `pushState` will be called to set the URL search param with the latest React state value. If setting the search param in the URL throws an error, and `rollbackOnError` is set to `true`, the local React state will "rollback" to its previous value.
+
+`rollbackOnError` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `rollbackOnError` option is passed to both, only the `rollbackOnError` passed to `useSearchParamState` will be called.
 
 `rollbackOnError` defaults to `false`.
 
@@ -192,13 +200,9 @@ A function with the following type: `(href: string) => void`.
 `pushState` defaults to:
 
 ```tsx
-(href: string) => {
+function defaultPushState(href: string) {
   window.history.pushState({}, "", href);
-};
-```
-
-```tsx
-(val: T) => JSON.stringify(val);
+}
 ```
 
 ### `onError`

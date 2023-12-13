@@ -20,6 +20,7 @@ export function defaultParse(unparsed: string) {
 }
 
 export function defaultStringify<T>(val: T) {
+  // avoid wrapping strings in quotes
   if (typeof val === "string") return val;
   return JSON.stringify(val);
 }

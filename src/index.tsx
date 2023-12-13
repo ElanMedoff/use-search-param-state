@@ -7,7 +7,7 @@ function useEffectOnce(effect: React.EffectCallback) {
 }
 
 // TODO:
-// 1. delete search param when no value?
+// 1. option to delete search param when no value?
 interface UseSearchParamStateOptions<T> {
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => T;
@@ -226,7 +226,7 @@ function useSearchParamStateContext<T>(...args: UseSearchParamStateParams<T>) {
   const context = React.useContext(SearchParamStateContext);
   if (context === undefined) {
     throw new Error(
-      "`useSearchParamStateContext` must be used within a `SearchParamStateProvider`"
+      "useSearchParamState can only be called by a component that is a child of SearchParamStateProvider."
     );
   }
   return context(...args);
