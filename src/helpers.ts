@@ -18,3 +18,8 @@ export function defaultParse(unparsed: string) {
     return unparsed;
   }
 }
+
+export function defaultStringify<T>(val: T) {
+  if (typeof val === "string") return val;
+  return JSON.stringify(val);
+}

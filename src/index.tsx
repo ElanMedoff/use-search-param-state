@@ -1,11 +1,13 @@
 import React from "react";
-import { defaultParse, isWindowUndefined } from "./helpers";
+import { defaultParse, defaultStringify, isWindowUndefined } from "./helpers";
 
 function useEffectOnce(effect: React.EffectCallback) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(effect, []);
 }
 
+// TODO:
+// 1. delete search param when no value?
 interface UseSearchParamStateOptions<T> {
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => T;
@@ -58,16 +60,13 @@ function useBuildSearchParamState(
     Record<string, any>
   >({});
 
-  // TODO: is it an issue that this has a different mem address on every render
   return function useSearchParamState<T>(
     searchParam: string,
     initialState: T,
     hookOptions: UseSearchParamStateOptions<T> = {}
   ) {
     const stringify =
-      hookOptions.stringify ??
-      buildOptions.stringify ??
-      ((val: T) => JSON.stringify(val));
+      hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
     const parse =
       hookOptions.parse ??
       (buildOptions.parse as (unparsed: string) => T) ??

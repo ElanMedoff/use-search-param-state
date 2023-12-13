@@ -119,11 +119,11 @@ export function defaultParse(unparsed: string) {
 
 ### `validate`
 
-A function with the following type: `(unvalidated: unknown) => T | null`.
+A function with the following type: `(unvalidated: unknown) => T`.
 
 The result of `parse` is passed as the `unvalidated` argument to `validate`.
 
-`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), explicitly return `null`, or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns `null`.
+`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
 
 `validate` has no default value.
 
