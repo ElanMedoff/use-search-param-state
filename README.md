@@ -2,7 +2,7 @@
 
 ⚠️ Warning: In progress!
 
-`useSearchParamState` provides a read-write interface to safely, reliably and easily synchronize React state with URL search params.
+A React hook with read-write interface to safely, reliably and easily synchronize React state with URL search params.
 
 ---
 
