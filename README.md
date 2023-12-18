@@ -4,9 +4,10 @@ A hook to synchronize React state with URL search params.
 
 ---
 
-[![npm version](https://badge.fury.io/js/use-search-param-state.svg)](https://badge.fury.io/js/use-search-param-state)
-<a href="https://pkg-size.dev/use-search-param-state?no-peers"><img src="https://pkg-size.dev/badge/install/16111" title="Install size for use-search-param-state"></a>
-<a href="https://pkg-size.dev/use-search-param-state?no-peers"><img src="https://pkg-size.dev/badge/bundle/2098" title="Bundle size for use-search-param-state"></a>
+[![npm](https://img.shields.io/npm/v/use-search-param-state)](https://www.npmjs.com/package/use-search-param-state)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/use-search-param-state)](https://bundlephobia.com/package/use-search-param-state)
+[![npm](https://img.shields.io/npm/dw/use-search-param-state)](https://www.npmjs.com/package/use-search-param-state)
+[![NPM](https://img.shields.io/npm/l/use-search-param-state)](https://github.com/ElanMedoff/use-search-param-state/blob/master/LICENSE)
 
 ## Basic usage
 
