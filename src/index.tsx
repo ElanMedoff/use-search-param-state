@@ -6,8 +6,6 @@ function useEffectOnce(effect: React.EffectCallback) {
   React.useEffect(effect, []);
 }
 
-// TODO:
-// 1. option to delete search param when no value?
 interface UseSearchParamStateOptions<T> {
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => T;
@@ -17,6 +15,8 @@ interface UseSearchParamStateOptions<T> {
   rollbackOnError?: boolean;
   pushState?: (href: string) => void;
   onError?: (e: unknown) => void;
+  // TODO: should delete on empty string?
+  deleteEmptySearchParam?: boolean;
 }
 
 export type UseBuildSearchParamStateOptions = Omit<
@@ -80,6 +80,10 @@ function useBuildSearchParamState(
         window.history.pushState({}, "", href);
       });
     const sanitize = hookOptions.sanitize ?? buildOptions.sanitize;
+    const deleteEmptySearchParam =
+      hookOptions.deleteEmptySearchParam ??
+      buildOptions.deleteEmptySearchParam ??
+      false;
     const { validate, serverSideURL } = hookOptions;
 
     const [isFirstRender, setIsFirstRender] = React.useState(true);
@@ -110,17 +114,23 @@ function useBuildSearchParamState(
     }, [serverSideURL]);
 
     const safelySetUrlState = React.useCallback(
-      (name: string, value: T) => {
+      (value: T) => {
         try {
           const href = maybeGetHref();
           if (href === null) {
             return { success: false };
           }
-
           const url = new URL(href);
-          const urlParams = url.searchParams;
+          if (deleteEmptySearchParam) {
+            if (value === "" || value === undefined || value === null) {
+              url.searchParams.delete(searchParam);
+              pushState(url.href);
+              return { success: true };
+            }
+          }
+
           const stringified = stringify(value);
-          urlParams.set(name, stringified);
+          url.searchParams.set(searchParam, stringified);
           pushState(url.href);
           return { success: true };
         } catch (e) {
@@ -129,7 +139,7 @@ function useBuildSearchParamState(
           return { success: false };
         }
       },
-      [maybeGetHref]
+      [maybeGetHref, deleteEmptySearchParam]
     );
 
     const getSearchParam = React.useCallback(() => {
@@ -143,7 +153,7 @@ function useBuildSearchParamState(
         const urlParams = url.searchParams;
         const initialParamState = urlParams.get(searchParam);
         if (initialParamState === null) {
-          safelySetUrlState(searchParam, initialState);
+          safelySetUrlState(initialState);
           return initialState;
         }
 
@@ -152,6 +162,15 @@ function useBuildSearchParamState(
             ? sanitize(initialParamState)
             : initialParamState;
         const parsed = parse(sanitized);
+
+        if (
+          (parsed === "" || parsed === null || parsed === undefined) &&
+          deleteEmptySearchParam
+        ) {
+          safelySetUrlState(parsed);
+          return initialState;
+        }
+
         const validated =
           validate instanceof Function ? validate(parsed) : parsed;
 
@@ -160,7 +179,7 @@ function useBuildSearchParamState(
         hookOptions.onError?.(e);
         buildOptions.onError?.(e);
 
-        safelySetUrlState(searchParam, initialState);
+        safelySetUrlState(initialState);
         return initialState;
       }
     }, [maybeGetHref, safelySetUrlState, searchParam]);
@@ -193,10 +212,7 @@ function useBuildSearchParamState(
     const wrappedSetState = React.useCallback(
       (newVal: T | ((currVal: T) => T)) => {
         if (newVal instanceof Function) {
-          const { success } = safelySetUrlState(
-            searchParam,
-            newVal(currSearchParamState)
-          );
+          const { success } = safelySetUrlState(newVal(currSearchParamState));
 
           if (success || !rollbackOnError) {
             setState(newVal(currSearchParamState));
@@ -204,18 +220,12 @@ function useBuildSearchParamState(
           return;
         }
 
-        const { success } = safelySetUrlState(searchParam, newVal);
+        const { success } = safelySetUrlState(newVal);
         if (success || !rollbackOnError) {
           setState(newVal);
         }
       },
-      [
-        rollbackOnError,
-        safelySetUrlState,
-        searchParam,
-        setState,
-        currSearchParamState,
-      ]
+      [rollbackOnError, safelySetUrlState, setState, currSearchParamState]
     );
 
     return [currSearchParamState, wrappedSetState] as const;
