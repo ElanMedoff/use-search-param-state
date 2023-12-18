@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 1.1.0 - 2023-12-18
+
+### Added
+
+- Re-read the search param and re-render the hook on `pushstate` and `replacestate` events.
+
 ## 1.0.0 - 2023-12-13
 
 ### Added
