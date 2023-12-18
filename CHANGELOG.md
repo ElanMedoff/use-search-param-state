@@ -16,6 +16,6 @@
 
 ## 1.0.0 - 2023-12-13
 
-### Added
+### Changed
 
 - Functioning hook!
