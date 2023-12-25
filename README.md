@@ -24,7 +24,7 @@ function Root() {
 }
 
 function Demo() {
-  const [counter, setCounter] = useSearchParamState("counter", 0);
+  const [counterState, setCounterState] = useSearchParamState("counter", 0);
 }
 ```
 
@@ -46,11 +46,33 @@ function Root() {
 
 function Demo() {
   const schema = z.number();
-  const [counter, setCounter] = useSearchParamState("counter", 0, {
+  const [counterState, setCounterState] = useSearchParamState("counter", 0, {
     validate: schema.parse,
   });
 }
 ```
+
+## Explanation
+
+On the first render, `useSearchParamState` will set `counterState` with the value read from the `counter` URL search param.
+
+By default, the `counter` search param is read using `window.location.href`. If the `window` object is `undefined`, `useSearchParamState` will use the `serverSideURL` instead to read from the URL. If `serverSideURL` is also not provided, `counterState` will be set to the initial state (i.e. `0`).
+
+Once the `counter` search param is accessed, the raw string is passed to `sanitize`, the output of `sanitize` is passed to `parse`, and finally the output of `parse` is passed to `validate`. Note that `useSearchParamState` aims to return a _parsed_ value, not a string!
+
+If `sanitize`, `parse`, or `validate` throw an error, a few things happen:
+
+1. The `onError` option is called.
+2. `counterState` will be set to the initial state.
+3. The `counter` search param in the URL will be set to the initial state. The initial state is stringified using the `stringify` option, and the URL is set using the `pushState` option. If `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set.
+
+If none of `sanitize`, `parse`, and `validate` throw an error, `counterState` is set to the sanitized, parsed, and validated value in the `counter` search param.
+
+---
+
+When setting the state using `setCounterState`, the new state is stringified using the `stringify` option, and the URL is set using the `pushState` option.
+
+If `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set. Additionally, if the `rollbackOnError` option is set to `true`, `counterState` will be set to its value prior to when `setCounterState` was called. Otherwise, `counterState` will retain its new value, and the `counter` URL search param will be out of sync with `counterState`. The latter behavior is the default, since local state tends to take precedence over URL state - URL state is generally a nice-to-have method to preserve local state across URL changes/refreshes.
 
 ## Options
 
@@ -89,6 +111,8 @@ A function with the following type: `(unsanitized: string) => string`.
 
 `sanitize` is called with the raw string pulled from the URL search param.
 
+If `sanitize` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
+
 `sanitize` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `sanitize` option is passed to both, only the `sanitize` passed to `useSearchParamState` will be called.
 
 `sanitize` has no default value.
@@ -98,6 +122,8 @@ A function with the following type: `(unsanitized: string) => string`.
 A function with the following type: `(unparsed: string) => T`.
 
 The result of `sanitize` is passed as the `unparsed` argument to `parse`.
+
+If `parse` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
 
 `parse` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `parse` option is passed to both, only the `parse` passed to `useSearchParamState` will be called.
 
@@ -127,15 +153,17 @@ A function with the following type: `(unvalidated: unknown) => T`.
 
 The result of `parse` is passed as the `unvalidated` argument to `validate`.
 
-`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
+`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If `validate` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
 
 `validate` has no default value.
 
 ### `stringify`
 
-A function with the following type: `(val: T) => string`.
+A function with the following type: `(valToStringify: T) => string`.
 
 `stringify` is used to dehydrate the search param state before setting the stringified value in the URL.
+
+If `stringify` throws an error, `onError` will be called and the URL will not be set.
 
 `stringify` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `stringify` option is passed to both, only the `stringify` passed to `useSearchParamState` will be called.
 
@@ -151,7 +179,7 @@ function defaultStringify<T>(val: T) {
 
 ### `serverSideURL`
 
-A value of type `string` or `URLSearchParams`.
+A value of type `string` or `URL`.
 
 When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js:
 

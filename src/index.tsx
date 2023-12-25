@@ -14,7 +14,7 @@ interface UseSearchParamStateOptions<T> {
   sanitize?: (unsanitized: string) => string;
   /**
    * @param `unparsed` The result of `sanitize` is passed as the `unparsed` argument to `parse`.
-   * @returns A parsed value of the type T (the type of `initialState`).
+   * @returns A parsed value of the type `T` i.e. the type of `initialState`.
    */
   parse?: (unparsed: string) => T;
   /**
@@ -25,12 +25,12 @@ interface UseSearchParamStateOptions<T> {
    */
   validate?: (unvalidated: unknown) => T;
   /**
-   * @param `val` The search param to stringify before setting it in the URL.
+   * @param `valToStringify` The search param to stringify before setting it in the URL.
    * @returns The stringified search param.
    */
-  stringify?: (val: T) => string;
+  stringify?: (valToStringify: T) => string;
   /**
-   * A value of type `string` or `URLSearchParams`.
+   * A value of type `string` or `URL`.
    *
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
    */
@@ -110,7 +110,7 @@ function useBuildSearchParamState(
     /**
      * Options passed by a particular instance of `useSearchParamState`.
      *
-     * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option, in which case both the `onError`s are called.
+     * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
     hookOptions: UseSearchParamStateOptions<T> = {}
   ) {
@@ -178,6 +178,7 @@ function useBuildSearchParamState(
           return { success: false };
         }
       },
+      // avoid putting non-primitives passed by the consumer in the dep array
       [maybeGetHref]
     );
 
@@ -212,6 +213,7 @@ function useBuildSearchParamState(
         safelySetUrlState(searchParam, initialState);
         return initialState;
       }
+      // avoid putting non-primitives passed by the consumer in the dep array
     }, [maybeGetHref, safelySetUrlState, searchParam]);
 
     React.useEffect(() => {
