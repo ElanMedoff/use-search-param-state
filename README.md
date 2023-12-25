@@ -1,4 +1,4 @@
-# useSearchParamState
+# use-search-param-state
 
 A hook to synchronize React state with URL search params.
 
