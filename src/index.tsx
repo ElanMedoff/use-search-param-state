@@ -185,14 +185,18 @@ function useBuildSearchParamState(
     }, [maybeGetHref, safelySetUrlState, searchParam]);
 
     React.useEffect(() => {
-      const reactToPopState = () => {
+      const onEvent = () => {
         setState(getSearchParam());
       };
 
-      window.addEventListener("popstate", reactToPopState);
+      window.addEventListener("popstate", onEvent);
+      window.addEventListener("pushstate", onEvent);
+      window.addEventListener("replacestate", onEvent);
 
       return () => {
-        window.removeEventListener("popstate", reactToPopState);
+        window.removeEventListener("popstate", onEvent);
+        window.removeEventListener("pushstate", onEvent);
+        window.removeEventListener("replacestate", onEvent);
       };
     }, [getSearchParam, setState]);
 
