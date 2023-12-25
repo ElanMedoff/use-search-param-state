@@ -101,7 +101,7 @@ The result of `sanitize` is passed as the `unparsed` argument to `parse`.
 
 `parse` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `parse` option is passed to both, only the `parse` passed to `useSearchParamState` will be called.
 
-`parse` defaults to the following function:
+`parse` defaults:
 
 ```ts
 export function defaultParse(unparsed: string) {
@@ -139,7 +139,7 @@ A function with the following type: `(val: T) => string`.
 
 `stringify` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `stringify` option is passed to both, only the `stringify` passed to `useSearchParamState` will be called.
 
-`stringify` defaults to:
+`stringify` defaults:
 
 ```tsx
 function defaultStringify<T>(val: T) {
@@ -153,7 +153,7 @@ function defaultStringify<T>(val: T) {
 
 A value of type `string` or `URLSearchParams`.
 
-When passed, `serverSideURL` will be used when `window` is `undefined` to access the search params. This is useful for generating content on the server, i.e. with Next.js:
+When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js:
 
 ```tsx
 import url from "url";

@@ -6,16 +6,50 @@ function useEffectOnce(effect: React.EffectCallback) {
   React.useEffect(effect, []);
 }
 
-// TODO:
-// 1. option to delete search param when no value?
 interface UseSearchParamStateOptions<T> {
+  /**
+   * @param `unsanitized` The raw string pulled from the URL search param.
+   * @returns The sanitized string.
+   */
   sanitize?: (unsanitized: string) => string;
+  /**
+   * @param `unparsed` The result of `sanitize` is passed as the `unparsed` argument to `parse`.
+   * @returns A parsed value of the type T (the type of `initialState`).
+   */
   parse?: (unparsed: string) => T;
+  /**
+   * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
+   *
+   * @param `unvalidated` The result of `parse` is passed as the `unvalidated` argument to `validate`.
+   * @returns The `unvalidated` argument, now validated as of type `T`.
+   */
   validate?: (unvalidated: unknown) => T;
+  /**
+   * @param `val` The search param to stringify before setting it in the URL.
+   * @returns The stringified search param.
+   */
   stringify?: (val: T) => string;
+  /**
+   * A value of type `string` or `URLSearchParams`.
+   *
+   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
+   */
   serverSideURL?: string | URL;
+  /**
+   * A `boolean`.
+   *
+   * When calling the `setState` function returned by `useSearchParamState`, `pushState` will be called to set the URL search param with the latest React state value. If setting the search param in the URL throws an error, and `rollbackOnError` is set to `true`, the local React state will "rollback" to its previous value.
+   */
   rollbackOnError?: boolean;
+  /**
+   * @param `href` The `href` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
+   * @returns
+   */
   pushState?: (href: string) => void;
+  /**
+   * @param `e` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
+   * @returns
+   */
   onError?: (e: unknown) => void;
 }
 
@@ -61,8 +95,23 @@ function useBuildSearchParamState(
   >({});
 
   return function useSearchParamState<T>(
+    /**
+     * The name of the URL search param to read from and write to.
+     *
+     * See MDN's documentation on [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) for more info.
+     */
     searchParam: string,
+    /**
+     * The initial state returned by `useSearchParamState` if no valid URL search param is present to read from.
+     *
+     * Note that if `sanitize`, `parse`, or `validate` throw an error, the initial state is set in the URL and returned by `useSearchParamState`.
+     */
     initialState: T,
+    /**
+     * Options passed by a particular instance of `useSearchParamState`.
+     *
+     * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option, in which case both the `onError`s are called.
+     */
     hookOptions: UseSearchParamStateOptions<T> = {}
   ) {
     const stringify =
