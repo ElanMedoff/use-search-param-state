@@ -24,3 +24,7 @@ export function defaultStringify<T>(val: T) {
   if (typeof val === "string") return val;
   return JSON.stringify(val);
 }
+
+export function defaultIsEmptySearchParam<T>(val: T) {
+  return val === null || val === undefined || val === "";
+}

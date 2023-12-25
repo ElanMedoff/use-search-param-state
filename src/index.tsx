@@ -1,5 +1,10 @@
 import React from "react";
-import { defaultParse, defaultStringify, isWindowUndefined } from "./helpers";
+import {
+  defaultParse,
+  defaultStringify,
+  defaultIsEmptySearchParam,
+  isWindowUndefined,
+} from "./helpers";
 
 function useEffectOnce(effect: React.EffectCallback) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -15,8 +20,8 @@ interface UseSearchParamStateOptions<T> {
   rollbackOnError?: boolean;
   pushState?: (href: string) => void;
   onError?: (e: unknown) => void;
-  // TODO: should delete on empty string?
   deleteEmptySearchParam?: boolean;
+  isEmptySearchParam?: (parsedSearchParam: T) => boolean;
 }
 
 export type UseBuildSearchParamStateOptions = Omit<
@@ -84,6 +89,12 @@ function useBuildSearchParamState(
       hookOptions.deleteEmptySearchParam ??
       buildOptions.deleteEmptySearchParam ??
       false;
+
+    const isEmptySearchParam =
+      hookOptions.isEmptySearchParam ??
+      buildOptions.isEmptySearchParam ??
+      defaultIsEmptySearchParam;
+
     const { validate, serverSideURL } = hookOptions;
 
     const [isFirstRender, setIsFirstRender] = React.useState(true);
@@ -121,12 +132,10 @@ function useBuildSearchParamState(
             return { success: false };
           }
           const url = new URL(href);
-          if (deleteEmptySearchParam) {
-            if (value === "" || value === undefined || value === null) {
-              url.searchParams.delete(searchParam);
-              pushState(url.href);
-              return { success: true };
-            }
+          if (deleteEmptySearchParam && isEmptySearchParam(value)) {
+            url.searchParams.delete(searchParam);
+            pushState(url.href);
+            return { success: true };
           }
 
           const stringified = stringify(value);
@@ -163,10 +172,8 @@ function useBuildSearchParamState(
             : initialParamState;
         const parsed = parse(sanitized);
 
-        if (
-          (parsed === "" || parsed === null || parsed === undefined) &&
-          deleteEmptySearchParam
-        ) {
+        // TODO: where should this be? before validating or after?
+        if (deleteEmptySearchParam && isEmptySearchParam(parsed)) {
           safelySetUrlState(parsed);
           return initialState;
         }
