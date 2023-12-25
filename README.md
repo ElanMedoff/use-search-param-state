@@ -10,6 +10,8 @@ A hook to synchronize React state with URL search params.
 [![NPM](https://img.shields.io/npm/l/use-search-param-state)](https://github.com/ElanMedoff/use-search-param-state/blob/master/LICENSE)
 [![Static Badge](https://img.shields.io/badge/dependencies%20-%200%20-%20green)](https://github.com/ElanMedoff/use-search-param-state/blob/master/package.json)
 
+![image](https://elanmed.dev/npm-packages/use-search-param-state-logo-rounded.png)
+
 ## Basic usage
 
 ```tsx
@@ -54,11 +56,13 @@ function Demo() {
 
 ## Explanation
 
-On the first render, `useSearchParamState` will set `counterState` with the value read from the `counter` URL search param.
+On the first render, `useSearchParamState` will set `counterState` to the value read from the `counter` URL search param.
 
 By default, the `counter` search param is read using `window.location.href`. If the `window` object is `undefined`, `useSearchParamState` will use the `serverSideURL` instead to read from the URL. If `serverSideURL` is also not provided, `counterState` will be set to the initial state (i.e. `0`).
 
-Once the `counter` search param is accessed, the raw string is passed to `sanitize`, the output of `sanitize` is passed to `parse`, and finally the output of `parse` is passed to `validate`. Note that `useSearchParamState` aims to return a _parsed_ value, not a string!
+If the `counter` search param does not exist, `counterState` will be set to the initial state.
+
+Once the `counter` search param is accessed, the raw string is passed to `sanitize`, the output of `sanitize` is passed to `parse`, and finally the output of `parse` is passed to `validate`. Note that `useSearchParamState` aims to return a _parsed_ value, not a _stringified_ value!
 
 If `sanitize`, `parse`, or `validate` throw an error, a few things happen:
 
