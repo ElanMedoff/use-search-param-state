@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 1.1.2 - 2023-12-25
+
+### Fixed
+
+- Fixed the type of `serverSideURL` in the README and intellisense comments (type in code was fine).
+
 ## 1.1.1 - 2023-12-24
 
 ### Fixed
