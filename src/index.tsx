@@ -18,14 +18,14 @@ interface UseSearchParamStateOptions<T> {
    */
   sanitize?: (unsanitized: string) => string;
   /**
-   * @param `unparsed` The result of `sanitize` is passed as the `unparsed` argument to `parse`.
+   * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
    * @returns A parsed value of the type `T` i.e. the type of `initialState`.
    */
   parse?: (unparsed: string) => T;
   /**
    * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
    *
-   * @param `unvalidated` The result of `parse` is passed as the `unvalidated` argument to `validate`.
+   * @param `unvalidated` The result of `parse` is passed as `unvalidated`.
    * @returns The `unvalidated` argument, now validated as of type `T`.
    */
   validate?: (unvalidated: unknown) => T;
@@ -43,7 +43,7 @@ interface UseSearchParamStateOptions<T> {
   /**
    * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    *
-   * @param `searchParamVal` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
+   * @param `searchParamVal` On the first render, the result of `validate` is passed as `searchParamVal`. When setting the state, the new state is passed as `searchParamVal`.
    * @returns A boolean.
    */
   isEmptySearchParam?: (searchParamVal: T) => boolean;
