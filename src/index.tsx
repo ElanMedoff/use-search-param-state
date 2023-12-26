@@ -1,5 +1,10 @@
 import React from "react";
-import { defaultParse, defaultStringify, isWindowUndefined } from "./helpers";
+import {
+  defaultParse,
+  defaultStringify,
+  defaultIsEmptySearchParam,
+  isWindowUndefined,
+} from "./helpers";
 
 function useEffectOnce(effect: React.EffectCallback) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -13,14 +18,14 @@ interface UseSearchParamStateOptions<T> {
    */
   sanitize?: (unsanitized: string) => string;
   /**
-   * @param `unparsed` The result of `sanitize` is passed as the `unparsed` argument to `parse`.
+   * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
    * @returns A parsed value of the type `T` i.e. the type of `initialState`.
    */
   parse?: (unparsed: string) => T;
   /**
    * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
    *
-   * @param `unvalidated` The result of `parse` is passed as the `unvalidated` argument to `validate`.
+   * @param `unvalidated` The result of `parse` is passed as `unvalidated`.
    * @returns The `unvalidated` argument, now validated as of type `T`.
    */
   validate?: (unvalidated: unknown) => T;
@@ -29,6 +34,19 @@ interface UseSearchParamStateOptions<T> {
    * @returns The stringified search param.
    */
   stringify?: (valToStringify: T) => string;
+  /**
+   * A `boolean`.
+   *
+   * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   */
+  deleteEmptySearchParam?: boolean;
+  /**
+   * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   *
+   * @param `searchParamVal` On the first render, the result of `validate` is passed as `searchParamVal`. When setting the state, the new state is passed as `searchParamVal`.
+   * @returns A boolean.
+   */
+  isEmptySearchParam?: (searchParamVal: T) => boolean;
   /**
    * A value of type `string` or `URL`.
    *
@@ -129,6 +147,16 @@ function useBuildSearchParamState(
         window.history.pushState({}, "", href);
       });
     const sanitize = hookOptions.sanitize ?? buildOptions.sanitize;
+    const deleteEmptySearchParam =
+      hookOptions.deleteEmptySearchParam ??
+      buildOptions.deleteEmptySearchParam ??
+      false;
+
+    const isEmptySearchParam =
+      hookOptions.isEmptySearchParam ??
+      buildOptions.isEmptySearchParam ??
+      defaultIsEmptySearchParam;
+
     const { validate, serverSideURL } = hookOptions;
 
     const [isFirstRender, setIsFirstRender] = React.useState(true);
@@ -159,17 +187,21 @@ function useBuildSearchParamState(
     }, [serverSideURL]);
 
     const safelySetUrlState = React.useCallback(
-      (name: string, value: T) => {
+      (value: T) => {
         try {
           const href = maybeGetHref();
           if (href === null) {
             return { success: false };
           }
-
           const url = new URL(href);
-          const urlParams = url.searchParams;
+          if (deleteEmptySearchParam && isEmptySearchParam(value)) {
+            url.searchParams.delete(searchParam);
+            pushState(url.href);
+            return { success: true };
+          }
+
           const stringified = stringify(value);
-          urlParams.set(name, stringified);
+          url.searchParams.set(searchParam, stringified);
           pushState(url.href);
           return { success: true };
         } catch (e) {
@@ -179,7 +211,7 @@ function useBuildSearchParamState(
         }
       },
       // avoid putting non-primitives passed by the consumer in the dep array
-      [maybeGetHref]
+      [maybeGetHref, deleteEmptySearchParam, searchParam]
     );
 
     const getSearchParam = React.useCallback(() => {
@@ -193,7 +225,7 @@ function useBuildSearchParamState(
         const urlParams = url.searchParams;
         const initialParamState = urlParams.get(searchParam);
         if (initialParamState === null) {
-          safelySetUrlState(searchParam, initialState);
+          safelySetUrlState(initialState);
           return initialState;
         }
 
@@ -205,16 +237,20 @@ function useBuildSearchParamState(
         const validated =
           validate instanceof Function ? validate(parsed) : parsed;
 
+        if (deleteEmptySearchParam && isEmptySearchParam(validated)) {
+          safelySetUrlState(validated);
+        }
+
         return validated;
       } catch (e) {
         hookOptions.onError?.(e);
         buildOptions.onError?.(e);
 
-        safelySetUrlState(searchParam, initialState);
+        safelySetUrlState(initialState);
         return initialState;
       }
       // avoid putting non-primitives passed by the consumer in the dep array
-    }, [maybeGetHref, safelySetUrlState, searchParam]);
+    }, [maybeGetHref, safelySetUrlState, searchParam, deleteEmptySearchParam]);
 
     React.useEffect(() => {
       const onEvent = () => {
@@ -248,10 +284,7 @@ function useBuildSearchParamState(
     const wrappedSetState = React.useCallback(
       (newVal: T | ((currVal: T) => T)) => {
         if (newVal instanceof Function) {
-          const { success } = safelySetUrlState(
-            searchParam,
-            newVal(currSearchParamState)
-          );
+          const { success } = safelySetUrlState(newVal(currSearchParamState));
 
           if (success || !rollbackOnError) {
             setState(newVal(currSearchParamState));
@@ -259,18 +292,12 @@ function useBuildSearchParamState(
           return;
         }
 
-        const { success } = safelySetUrlState(searchParam, newVal);
+        const { success } = safelySetUrlState(newVal);
         if (success || !rollbackOnError) {
           setState(newVal);
         }
       },
-      [
-        rollbackOnError,
-        safelySetUrlState,
-        searchParam,
-        setState,
-        currSearchParamState,
-      ]
+      [rollbackOnError, safelySetUrlState, setState, currSearchParamState]
     );
 
     return [currSearchParamState, wrappedSetState] as const;
