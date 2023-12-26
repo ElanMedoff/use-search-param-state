@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 1.2.0 - 2023-12-26
+
+### Added
+
+- Added `deleteEmptySearchParam` and `isEmptySearchParam` options.
+
 ## 1.1.2 - 2023-12-25
 
 ### Fixed
