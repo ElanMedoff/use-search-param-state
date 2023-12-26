@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { defaultParse, defaultStringify } from "./helpers";
+import {
+  defaultIsEmptySearchParam,
+  defaultParse,
+  defaultStringify,
+} from "./helpers";
 
 describe("defaultParse", () => {
   it.each([
@@ -25,5 +29,16 @@ describe("defaultStringify", () => {
     [[1, 2, 3], JSON.stringify([1, 2, 3])],
   ])("defaultParse(%s)", (a, b) => {
     expect(defaultStringify(a)).toStrictEqual(b);
+  });
+});
+
+describe("defaultIsEmptySearchParam", () => {
+  it.each([
+    [null, true],
+    [undefined, true],
+    ["", true],
+    [0, false],
+  ])("defaultIsEmptySearchParam(%s)", (a, b) => {
+    expect(defaultIsEmptySearchParam(a)).toStrictEqual(b);
   });
 });

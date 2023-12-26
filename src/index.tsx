@@ -35,6 +35,19 @@ interface UseSearchParamStateOptions<T> {
    */
   stringify?: (valToStringify: T) => string;
   /**
+   * A `boolean`.
+   *
+   * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   */
+  deleteEmptySearchParam?: boolean;
+  /**
+   * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   *
+   * @param `searchParamVal` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
+   * @returns A boolean.
+   */
+  isEmptySearchParam?: (searchParamVal: T) => boolean;
+  /**
    * A value of type `string` or `URL`.
    *
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
@@ -56,8 +69,6 @@ interface UseSearchParamStateOptions<T> {
    * @returns
    */
   onError?: (e: unknown) => void;
-  deleteEmptySearchParam?: boolean;
-  isEmptySearchParam?: (parsedSearchParam: T) => boolean;
 }
 
 export type UseBuildSearchParamStateOptions = Omit<
