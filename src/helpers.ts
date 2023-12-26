@@ -19,12 +19,16 @@ export function defaultParse(unparsed: string) {
   }
 }
 
-export function defaultStringify<T>(val: T) {
+export function defaultStringify<T>(valToStringify: T) {
   // avoid wrapping strings in quotes
-  if (typeof val === "string") return val;
-  return JSON.stringify(val);
+  if (typeof valToStringify === "string") return valToStringify;
+  return JSON.stringify(valToStringify);
 }
 
-export function defaultIsEmptySearchParam<T>(val: T) {
-  return val === null || val === undefined || val === "";
+export function defaultIsEmptySearchParam<T>(searchParamVal: T) {
+  return (
+    searchParamVal === null ||
+    searchParamVal === undefined ||
+    searchParamVal === ""
+  );
 }

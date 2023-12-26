@@ -90,7 +90,7 @@ However, if `stringify` or `pushState` throw an error, `onError` will be called 
 
 ```tsx
 interface UseSearchParamStateOptions<T> {
-  stringify?: (val: T) => string;
+  stringify?: (valToStringify: T) => string;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => T;
   validate?: (unvalidated: unknown) => T;
@@ -186,8 +186,12 @@ On first render, or when calling the `setState` function returned by `useSearchP
 `isEmptySearchParam` defaults to:
 
 ```ts
-function defaultIsEmptySearchParam<T>(val: T) {
-  return val === null || val === undefined || val === "";
+function defaultIsEmptySearchParam<T>(searchParamVal: T) {
+  return (
+    searchParamVal === null ||
+    searchParamVal === undefined ||
+    searchParamVal === ""
+  );
 }
 ```
 
@@ -204,10 +208,10 @@ If `stringify` throws an error, `onError` will be called and the URL will not be
 `stringify` defaults to:
 
 ```tsx
-function defaultStringify<T>(val: T) {
+function defaultStringify<T>(valToStringify: T) {
   // avoid wrapping strings in quotes
-  if (typeof val === "string") return val;
-  return JSON.stringify(val);
+  if (typeof valToStringify === "string") return valToStringify;
+  return JSON.stringify(valToStringify);
 }
 ```
 
