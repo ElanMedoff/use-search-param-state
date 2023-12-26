@@ -8,7 +8,11 @@ A hook to synchronize React state with URL search params.
 [![NPM](https://img.shields.io/npm/l/use-search-param-state)](https://github.com/ElanMedoff/use-search-param-state/blob/master/LICENSE)
 [![Static Badge](https://img.shields.io/badge/dependencies%20-%200%20-%20green)](https://github.com/ElanMedoff/use-search-param-state/blob/master/package.json)
 
-<img src="https://elanmed.dev/npm-packages/use-search-param-state-logo.png" style="padding: 3%; max-width: 600px; width: 100%; display: block; margin: auto;" />
+<!-- a hack to get around github sanitizing styles from markdown  -->
+<br>
+<p align="center">
+    <img src="https://elanmed.dev/npm-packages/use-search-param-state-logo.png" width="500px" />
+</p>
 
 ## Basic usage
 
