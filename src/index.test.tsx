@@ -54,7 +54,7 @@ describe("useSearchParamState", () => {
         expect(result.current[0]).toBe(1);
       });
 
-      it("without a serverSideURL, it should use the initialState arg", () => {
+      it("without a serverSideURL, it should return the initialState arg", () => {
         const { result } = wrappedRenderHook(() =>
           useSearchParamState("counter", 0)
         );
@@ -62,24 +62,42 @@ describe("useSearchParamState", () => {
       });
     });
 
-    it("when sanitize, parse, or validate errors, it should use the initialState arg and set the search param", () => {
-      const { result } = wrappedRenderHook(() =>
-        useSearchParamState("counter", 0, {
-          parse: () => {
-            throw new Error();
-          },
-        })
-      );
-      expect(result.current[0]).toBe(0);
-      expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=0");
-    });
-
-    it("with no search param in the url, it should use the initialState arg and set the search param", () => {
+    it("with no search param in the url, it should return the initialState arg and set the search param", () => {
       const { result } = wrappedRenderHook(() =>
         useSearchParamState("counter", 0)
       );
       expect(result.current[0]).toBe(0);
       expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=0");
+    });
+
+    it.each([["sanitize"], ["parse"], ["validate"]])(
+      "when %s errors, it should return the initialState arg and set the search param",
+      (fnName) => {
+        const { result } = wrappedRenderHook(() =>
+          useSearchParamState("counter", 0, {
+            [fnName]: () => {
+              throw new Error();
+            },
+          })
+        );
+        expect(result.current[0]).toBe(0);
+        expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=0");
+      }
+    );
+
+    it("when deleteEmptySearchParam is true, it should return the initialState arg and delete the search param", () => {
+      Object.defineProperty(window, "location", {
+        writable: true,
+        value: { href: "http://localhost:3000/?counter=" },
+      });
+
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", "default", {
+          deleteEmptySearchParam: true,
+        })
+      );
+      expect(result.current[0]).toBe("");
+      expectPushStateToHaveBeenCalledWith("http://localhost:3000/");
     });
 
     it("with a search param in the url, it should dehydrate the search param", () => {
@@ -162,6 +180,21 @@ describe("useSearchParamState", () => {
           });
           expect(result.current[0]).toBe(0);
         });
+      });
+
+      it("when deleteEmptySearchParam is true and the new state is empty, it should delete the search param", () => {
+        const { result } = wrappedRenderHook(() =>
+          useSearchParamState("counter", 0, {
+            deleteEmptySearchParam: true,
+            isEmptySearchParam: (val) => val === 10,
+          })
+        );
+        expect(result.current[0]).toBe(0);
+        act(() => {
+          result.current[1](setStateArg);
+        });
+        expectPushStateToHaveBeenCalledWith("http://localhost:3000/");
+        expect(result.current[0]).toBe(10);
       });
     }
 
@@ -318,6 +351,18 @@ describe("useSearchParamState", () => {
       );
       expect(onError).toHaveBeenCalledOnce();
     });
+
+    it("when a deleteEmptySearchParam and isEmptySearchParam are passed, it should use it", () => {
+      buildOptions = {
+        deleteEmptySearchParam: true,
+        isEmptySearchParam: (val) => val === 1,
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0)
+      );
+      expect(result.current[0]).toBe(1);
+      expectPushStateToHaveBeenCalledWith("http://localhost:3000/");
+    });
   });
 
   describe("build options with overriding hook options", () => {
@@ -404,6 +449,34 @@ describe("useSearchParamState", () => {
       );
       expect(buildOnError).toHaveBeenCalledOnce();
       expect(hookOnError).toHaveBeenCalledOnce();
+    });
+
+    it("when an isEmptySearchParam is passed, it should use the hook option", () => {
+      buildOptions = {
+        deleteEmptySearchParam: true,
+        isEmptySearchParam: (val) => val === 1,
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          isEmptySearchParam: (val) => val === 0,
+        })
+      );
+      expect(result.current[0]).toBe(1);
+      expect(window.history.pushState).not.toHaveBeenCalled();
+    });
+
+    it("when a deleteEmptySearchParam is passed, it should use the hook option", () => {
+      buildOptions = {
+        deleteEmptySearchParam: false,
+        isEmptySearchParam: (val) => val === 0,
+      };
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0, {
+          deleteEmptySearchParam: true,
+        })
+      );
+      expect(result.current[0]).toBe(1);
+      expect(window.history.pushState).not.toHaveBeenCalled();
     });
   });
 

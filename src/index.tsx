@@ -200,7 +200,7 @@ function useBuildSearchParamState(
         }
       },
       // avoid putting non-primitives passed by the consumer in the dep array
-      [maybeGetHref, deleteEmptySearchParam]
+      [maybeGetHref, deleteEmptySearchParam, searchParam]
     );
 
     const getSearchParam = React.useCallback(() => {
@@ -223,15 +223,12 @@ function useBuildSearchParamState(
             ? sanitize(initialParamState)
             : initialParamState;
         const parsed = parse(sanitized);
-
-        // TODO: where should this be? before validating or after?
-        if (deleteEmptySearchParam && isEmptySearchParam(parsed)) {
-          safelySetUrlState(parsed);
-          return initialState;
-        }
-
         const validated =
           validate instanceof Function ? validate(parsed) : parsed;
+
+        if (deleteEmptySearchParam && isEmptySearchParam(validated)) {
+          safelySetUrlState(validated);
+        }
 
         return validated;
       } catch (e) {
@@ -242,7 +239,7 @@ function useBuildSearchParamState(
         return initialState;
       }
       // avoid putting non-primitives passed by the consumer in the dep array
-    }, [maybeGetHref, safelySetUrlState, searchParam]);
+    }, [maybeGetHref, safelySetUrlState, searchParam, deleteEmptySearchParam]);
 
     React.useEffect(() => {
       const onEvent = () => {
