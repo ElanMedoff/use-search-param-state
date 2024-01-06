@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 1.2.1 - 2024-01-05
+
+### Fixed
+
+- Fix images on the README on npm.
+
 ## 1.2.0 - 2023-12-26
 
 ### Added

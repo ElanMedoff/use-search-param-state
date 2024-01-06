@@ -10,7 +10,7 @@ echo "what version are you updating to? (y/n)"
 read VERSION
 
 git add -A
-git commit -m "chore: update to version $VERSION, update changelog"
+git commit -m "version: v$VERSION"
 git push origin head
 
 npm run build
