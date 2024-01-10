@@ -216,7 +216,7 @@ function defaultStringify<T>(valToStringify: T) {
 
 ### `serverSideURL`
 
-A value of type `string` - any valid string input to the `URL` constructor.
+A value of type `string` - any valid `string` input to the `URL` constructor.
 
 When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js:
 

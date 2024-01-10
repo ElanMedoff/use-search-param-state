@@ -480,6 +480,29 @@ describe("useSearchParamState", () => {
     });
   });
 
+  describe("events", () => {
+    beforeEach(() => {
+      Object.defineProperty(window, "location", {
+        writable: true,
+        value: { href: "http://localhost:3000/?counter=1" },
+      });
+    });
+
+    it("should update the state on the popstate event", () => {
+      const { result } = wrappedRenderHook(() =>
+        useSearchParamState("counter", 0)
+      );
+      expect(result.current[0]).toBe(1);
+
+      Object.defineProperty(window, "location", {
+        writable: true,
+        value: { href: "http://localhost:3000/?counter=2" },
+      });
+      dispatchEvent(new Event("popstate"));
+      expect(result.current[0]).toBe(2);
+    });
+  });
+
   it("multiple hooks sharing a single param should both mutate the same param", async () => {
     function Parent() {
       return (
