@@ -8,6 +8,18 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.0 - 2024-01-09
+
+### Changed
+
+- Update `serverSideURL` type from `string | URL` to `string` to maintain referential stability.
+
+### Fixed
+
+- Remove unnecessary returns in `defaultParse`.
+- Remove unnecessary even listeners - `pushstate` and `replacestate` events are not valid.
+- Update `vitest` to version >`1.0.0`.
+
 ## 1.2.1 - 2024-01-05
 
 ### Fixed
