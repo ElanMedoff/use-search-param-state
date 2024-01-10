@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.1 - 2024-01-09
+
+### Fixed
+
+- Add test to check re-render on `popstate` events.
+
 ## 2.0.0 - 2024-01-09
 
 ### Changed
