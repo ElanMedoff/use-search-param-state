@@ -4,11 +4,10 @@ export function isWindowUndefined() {
 }
 
 export function defaultParse(unparsed: string) {
-  if (unparsed === "null") return null;
+  // JSON.parse errors on "undefined"
   if (unparsed === "undefined") return undefined;
-  if (unparsed === "true") return true;
-  if (unparsed === "false") return false;
 
+  // parseFloat coerces bigints to numbers
   const maybeNum = parseFloat(unparsed);
   if (!Number.isNaN(maybeNum)) return maybeNum;
 

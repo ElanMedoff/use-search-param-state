@@ -48,11 +48,11 @@ interface UseSearchParamStateOptions<T> {
    */
   isEmptySearchParam?: (searchParamVal: T) => boolean;
   /**
-   * A value of type `string` or `URL`.
+   * A value of type `string` - any valid string input to the `URL` constructor.
    *
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
    */
-  serverSideURL?: string | URL;
+  serverSideURL?: string;
   /**
    * A `boolean`.
    *
@@ -175,9 +175,6 @@ function useBuildSearchParamState(
 
     const maybeGetHref = React.useCallback(() => {
       if (isWindowUndefined()) {
-        if (serverSideURL instanceof URL) {
-          return serverSideURL.toString();
-        }
         if (typeof serverSideURL === "string") {
           return serverSideURL;
         }
@@ -256,15 +253,9 @@ function useBuildSearchParamState(
       const onEvent = () => {
         setState(getSearchParam());
       };
-
       window.addEventListener("popstate", onEvent);
-      window.addEventListener("pushstate", onEvent);
-      window.addEventListener("replacestate", onEvent);
-
       return () => {
         window.removeEventListener("popstate", onEvent);
-        window.removeEventListener("pushstate", onEvent);
-        window.removeEventListener("replacestate", onEvent);
       };
     }, [getSearchParam, setState]);
 

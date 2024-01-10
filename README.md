@@ -96,7 +96,7 @@ interface UseSearchParamStateOptions<T> {
   validate?: (unvalidated: unknown) => T;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: T) => boolean;
-  serverSideURL?: string | URL;
+  serverSideURL?: string;
   rollbackOnError?: boolean;
   pushState?: (href: string) => void;
   onError?: (e: unknown) => void;
@@ -142,12 +142,11 @@ If `parse` throws an error, `onError` will be called, `useSearchParamState` will
 `parse` defaults to:
 
 ```ts
-export function defaultParse(unparsed: string) {
-  if (unparsed === "null") return null;
+function defaultParse(unparsed: string) {
+  // JSON.parse errors on "undefined"
   if (unparsed === "undefined") return undefined;
-  if (unparsed === "true") return true;
-  if (unparsed === "false") return false;
 
+  // parseFloat coerces bigints to numbers
   const maybeNum = parseFloat(unparsed);
   if (!Number.isNaN(maybeNum)) return maybeNum;
 
@@ -217,7 +216,7 @@ function defaultStringify<T>(valToStringify: T) {
 
 ### `serverSideURL`
 
-A value of type `string` or `URL`.
+A value of type `string` - any valid string input to the `URL` constructor.
 
 When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js:
 
