@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.1 - 2024-01-25
+
+### Fixed
+
+- Add testing, known limitation section to the README.
+
 ## 2.0.1 - 2024-01-09
 
 ### Fixed
