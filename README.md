@@ -58,7 +58,7 @@ function Demo() {
 
 ## Explanation
 
-On the first render, `useSearchParamState` will set `counterState` to the value read from the `counter` URL search param.
+On the first render, `useSearchParamState` will read from the `counter` URL search param.
 
 By default, the `counter` search param is read using `window.location.href`. If the `window` object is `undefined`, `useSearchParamState` will use the `serverSideURL` instead to read from the URL. If `serverSideURL` is also not provided, `counterState` will be set to the initial state (i.e. `0`).
 
@@ -83,6 +83,8 @@ When setting the state using `setCounterState`, the new state is stringified usi
 If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
 However, if `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set. Additionally, if the `rollbackOnError` option is set to `true`, `counterState` will be set to its value prior to when `setCounterState` was called. Otherwise, `counterState` will retain its new value, and the `counter` URL search param will be out of sync with `counterState`. The latter behavior is the default, since local state tends to take precedence over URL state.
+
+Note that multiple instances of `useSearchParamState` that read from the same URL search param will be kept in-sync thanks to the `SearchParamStateProvider` wrapping your app.
 
 ## Options
 
@@ -279,3 +281,32 @@ A function with the following type: `(e: unknown) => void`.
 Most actions in `useSearchParamState` are wrapped in a `try` `catch` block - `onError` is called whenever the `catch` block is reached. This includes situations when `sanitize`, `parse`, or `validate` throw an error.
 
 `onError` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When an `onError` option is passed to both, both the functions will be called.
+
+## Testing
+
+The best approach to test uses of `useSearchParamState` is by mocking the `window.location` property directly in your tests:
+
+```ts
+Object.defineProperty(window, "location", {
+  writable: true,
+  value: { search: "?counter=1" },
+});
+```
+
+If you mutate `window.location` directly, i.e.
+
+```ts
+window.location = { search: "?counter=1" };
+```
+
+You may receive an error that `window.location` is read-only.
+
+## Known limitations
+
+`useSearchParamState` creates an event listener to re-read the search param on `popstate` events with a `useEffect`. To prevent the `useEffect` from running after every render, it's provided with a dependency array. However, since several options passed by the user are not referentially stable, these options are intentionally excluded from the dependency array. These include: `initialState`, `isEmptySearchParam`, `sanitize`, `stringify`, `parse`, `validate`, and `onError`
+
+This is almost certainly beneficial to the consumer, since it's very unlikely that the developer would preemptively wrap these options in a `useCallback`/`useMemo` to maintain referential stability, and it's very unlikely that these values would ever change intentionally.
+
+However, say we have a scenario where the consumer decides to memoize two different `validate` functions and conditionally passes one or the other as the `validate` option - when the condition changes and the option updates, `useSearchParamState` will not recognize that `validate` has changed. In this situation, the event listener will not be updated to use the latest `validate` option.
+
+If you run into this problem yourself, please create an [issue](https://github.com/ElanMedoff/use-search-param-state/issues) on Github 🙏.
