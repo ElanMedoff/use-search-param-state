@@ -91,13 +91,13 @@ Note that multiple instances of `useSearchParamState` that read from the same UR
 `useSearchParamState` accepts the following options:
 
 ```tsx
-interface UseSearchParamStateOptions<T> {
-  stringify?: (valToStringify: T) => string;
+interface UseSearchParamStateOptions<TVal> {
+  stringify?: (valToStringify: TVal) => string;
   sanitize?: (unsanitized: string) => string;
-  parse?: (unparsed: string) => T;
-  validate?: (unvalidated: unknown) => T;
+  parse?: (unparsed: string) => TVal;
+  validate?: (unvalidated: unknown) => TVal;
   deleteEmptySearchParam?: boolean;
-  isEmptySearchParam?: (searchParamVal: T) => boolean;
+  isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   serverSideURL?: string;
   rollbackOnError?: boolean;
   pushState?: (href: string) => void;
@@ -133,7 +133,7 @@ If `sanitize` throws an error, `onError` will be called, `useSearchParamState` w
 
 ### `parse`
 
-A function with the following type: `(unparsed: string) => T`.
+A function with the following type: `(unparsed: string) => TVal`.
 
 The result of `sanitize` is passed as the `unparsed` argument to `parse`.
 
@@ -162,11 +162,11 @@ function defaultParse(unparsed: string) {
 
 ### `validate`
 
-A function with the following type: `(unvalidated: unknown) => T`.
+A function with the following type: `(unvalidated: unknown) => TVal`.
 
 The result of `parse` is passed as the `unvalidated` argument to `validate`.
 
-`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If `validate` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
+`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If `validate` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
 
 `validate` has no default value.
 
@@ -180,14 +180,14 @@ On first render, or when calling the `setState` function returned by `useSearchP
 
 ### `isEmptySearchParam`
 
-A function with the following type: `(searchParamVal: T) => boolean;`.
+A function with the following type: `(searchParamVal: TVal) => boolean;`.
 
 On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
 `isEmptySearchParam` defaults to:
 
 ```ts
-function defaultIsEmptySearchParam<T>(searchParamVal: T) {
+function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
   return (
     searchParamVal === null ||
     searchParamVal === undefined ||
@@ -198,7 +198,7 @@ function defaultIsEmptySearchParam<T>(searchParamVal: T) {
 
 ### `stringify`
 
-A function with the following type: `(valToStringify: T) => string`.
+A function with the following type: `(valToStringify: TVal) => string`.
 
 `stringify` is used to dehydrate the search param state before setting the stringified value in the URL.
 
@@ -209,7 +209,7 @@ If `stringify` throws an error, `onError` will be called and the URL will not be
 `stringify` defaults to:
 
 ```tsx
-function defaultStringify<T>(valToStringify: T) {
+function defaultStringify<TVal>(valToStringify: TVal) {
   // avoid wrapping strings in quotes
   if (typeof valToStringify === "string") return valToStringify;
   return JSON.stringify(valToStringify);

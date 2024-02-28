@@ -11,7 +11,7 @@ function useEffectOnce(effect: React.EffectCallback) {
   React.useEffect(effect, []);
 }
 
-interface UseSearchParamStateOptions<T> {
+interface UseSearchParamStateOptions<TVal> {
   /**
    * @param `unsanitized` The raw string pulled from the URL search param.
    * @returns The sanitized string.
@@ -19,21 +19,21 @@ interface UseSearchParamStateOptions<T> {
   sanitize?: (unsanitized: string) => string;
   /**
    * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
-   * @returns A parsed value of the type `T` i.e. the type of `initialState`.
+   * @returns A parsed value of the type `TVal` i.e. the type of `initialState`.
    */
-  parse?: (unparsed: string) => T;
+  parse?: (unparsed: string) => TVal;
   /**
-   * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `T`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
+   * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
    *
    * @param `unvalidated` The result of `parse` is passed as `unvalidated`.
-   * @returns The `unvalidated` argument, now validated as of type `T`.
+   * @returns The `unvalidated` argument, now validated as of type `TVal`.
    */
-  validate?: (unvalidated: unknown) => T;
+  validate?: (unvalidated: unknown) => TVal;
   /**
    * @param `valToStringify` The search param to stringify before setting it in the URL.
    * @returns The stringified search param.
    */
-  stringify?: (valToStringify: T) => string;
+  stringify?: (valToStringify: TVal) => string;
   /**
    * A `boolean`.
    *
@@ -46,7 +46,7 @@ interface UseSearchParamStateOptions<T> {
    * @param `searchParamVal` On the first render, the result of `validate` is passed as `searchParamVal`. When setting the state, the new state is passed as `searchParamVal`.
    * @returns A boolean.
    */
-  isEmptySearchParam?: (searchParamVal: T) => boolean;
+  isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   /**
    * A value of type `string` - any valid string input to the `URL` constructor.
    *
@@ -75,15 +75,15 @@ export type UseBuildSearchParamStateOptions = Omit<
   UseSearchParamStateOptions<unknown>,
   "validate" | "serverSideURL"
 >;
-type UseSearchParamStateParams<T> = [
+type UseSearchParamStateParams<TVal> = [
   searchParam: string,
-  initialState: T,
-  hookOptions?: UseSearchParamStateOptions<T>,
+  initialState: TVal,
+  hookOptions?: UseSearchParamStateOptions<TVal>,
 ];
 
-type UseSearchParamStateType = <T>(
-  ...args: UseSearchParamStateParams<T>
-) => readonly [T, (newVal: T | ((currVal: T) => T)) => void];
+type UseSearchParamStateType = <TVal>(
+  ...args: UseSearchParamStateParams<TVal>
+) => readonly [TVal, (newVal: TVal | ((currVal: TVal) => TVal)) => void];
 
 const SearchParamStateContext = React.createContext<
   UseSearchParamStateType | undefined
@@ -112,7 +112,7 @@ function useBuildSearchParamState(
     Record<string, any>
   >({});
 
-  return function useSearchParamState<T>(
+  return function useSearchParamState<TVal>(
     /**
      * The name of the URL search param to read from and write to.
      *
@@ -124,20 +124,20 @@ function useBuildSearchParamState(
      *
      * Note that if `sanitize`, `parse`, or `validate` throw an error, the initial state is set in the URL and returned by `useSearchParamState`.
      */
-    initialState: T,
+    initialState: TVal,
     /**
      * Options passed by a particular instance of `useSearchParamState`.
      *
      * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
-    hookOptions: UseSearchParamStateOptions<T> = {}
+    hookOptions: UseSearchParamStateOptions<TVal> = {}
   ) {
     const stringify =
       hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
     const parse =
       hookOptions.parse ??
-      (buildOptions.parse as (unparsed: string) => T) ??
-      (defaultParse as (unparsed: string) => T);
+      (buildOptions.parse as (unparsed: string) => TVal) ??
+      (defaultParse as (unparsed: string) => TVal);
     const rollbackOnError =
       hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
     const pushState =
@@ -162,7 +162,7 @@ function useBuildSearchParamState(
     const [isFirstRender, setIsFirstRender] = React.useState(true);
 
     const setState = React.useCallback(
-      (newState: T) => {
+      (newState: TVal) => {
         setGlobalSearchParams((prev) => {
           return {
             ...prev,
@@ -184,7 +184,7 @@ function useBuildSearchParamState(
     }, [serverSideURL]);
 
     const safelySetUrlState = React.useCallback(
-      (value: T) => {
+      (value: TVal) => {
         try {
           const href = maybeGetHref();
           if (href === null) {
@@ -259,7 +259,7 @@ function useBuildSearchParamState(
       };
     }, [getSearchParam, setState]);
 
-    const [serverState] = React.useState<T>(() => {
+    const [serverState] = React.useState<TVal>(() => {
       return getSearchParam();
     });
 
@@ -270,10 +270,10 @@ function useBuildSearchParamState(
 
     const currSearchParamState = isFirstRender
       ? serverState
-      : (globalSearchParams[searchParam] as T);
+      : (globalSearchParams[searchParam] as TVal);
 
     const wrappedSetState = React.useCallback(
-      (newVal: T | ((currVal: T) => T)) => {
+      (newVal: TVal | ((currVal: TVal) => TVal)) => {
         if (newVal instanceof Function) {
           const { success } = safelySetUrlState(newVal(currSearchParamState));
 
@@ -295,7 +295,9 @@ function useBuildSearchParamState(
   };
 }
 
-function useSearchParamStateContext<T>(...args: UseSearchParamStateParams<T>) {
+function useSearchParamStateContext<TVal>(
+  ...args: UseSearchParamStateParams<TVal>
+) {
   const context = React.useContext(SearchParamStateContext);
   if (context === undefined) {
     throw new Error(

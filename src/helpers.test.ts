@@ -14,7 +14,7 @@ describe("defaultParse", () => {
     ["false", false],
     ["123", 123],
     ["123.45", 123.45],
-    ["123n", 123],
+    ["0asdf", "0asdf"],
     [JSON.stringify([123]), [123]],
     ["[123", "[123"],
     ["hello", "hello"],
