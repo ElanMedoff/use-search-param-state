@@ -8,7 +8,13 @@
 <!---->
 <!-- ### Fixed -->
 
-## 2.0.1 - 2024-01-25
+## 2.0.3 - 2024-02-28
+
+### Fixed
+
+- Update `defaultParse` to use `Number` instead of `parseFloat`: was causing an issue where strings starting with a number were parsed as numbers
+
+## 2.0.2 - 2024-01-25
 
 ### Fixed
 
