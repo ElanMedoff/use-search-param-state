@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.4 - 2024-03-22
+
+### Fixed
+
+- Remove URL setting on the first render: was causing an where navigating backwards would cause an infinite loop.
+
 ## 2.0.3 - 2024-02-28
 
 ### Fixed
