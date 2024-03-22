@@ -121,7 +121,7 @@ A function with the following type: `(unsanitized: string) => string`.
 
 `sanitize` is called with the raw string pulled from the URL search param.
 
-If `sanitize` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
+If `sanitize` throws an error, `onError` will be called and `useSearchParamState` will return the initial state.
 
 `sanitize` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `sanitize` option is passed to both, only the `sanitize` passed to `useSearchParamState` will be called.
 
@@ -133,7 +133,7 @@ A function with the following type: `(unparsed: string) => TVal`.
 
 The result of `sanitize` is passed as the `unparsed` argument to `parse`.
 
-If `parse` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
+If `parse` throws an error, `onError` will be called and `useSearchParamState` will return the initial state.
 
 `parse` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `parse` option is passed to both, only the `parse` passed to `useSearchParamState` will be called.
 
@@ -165,7 +165,7 @@ A function with the following type: `(unvalidated: unknown) => TVal`.
 
 The result of `parse` is passed as the `unvalidated` argument to `validate`.
 
-`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If `validate` throws an error, `onError` will be called, `useSearchParamState` will return the initial state, and the URL will be set with the initial state using `pushState`.
+`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If `validate` throws an error, `onError` will be called and `useSearchParamState` will return the initial state.
 
 `validate` has no default value.
 
@@ -173,7 +173,7 @@ The result of `parse` is passed as the `unvalidated` argument to `validate`.
 
 A `boolean`.
 
-On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
 `deleteEmptySearchParam` defaults to `false`.
 
@@ -181,7 +181,7 @@ On first render, or when calling the `setState` function returned by `useSearchP
 
 A function with the following type: `(searchParamVal: TVal) => boolean;`.
 
-On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
 `isEmptySearchParam` defaults to:
 
