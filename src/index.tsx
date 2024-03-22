@@ -37,13 +37,13 @@ interface UseSearchParamStateOptions<TVal> {
   /**
    * A `boolean`.
    *
-   * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    */
   deleteEmptySearchParam?: boolean;
   /**
-   * On first render, or when calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    *
-   * @param `searchParamVal` On the first render, the result of `validate` is passed as `searchParamVal`. When setting the state, the new state is passed as `searchParamVal`.
+   * @param `searchParamVal` When setting the state, the new state is passed as `searchParamVal`.
    * @returns A boolean.
    */
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
@@ -75,14 +75,14 @@ export type UseBuildSearchParamStateOptions = Omit<
   UseSearchParamStateOptions<unknown>,
   "validate" | "serverSideURL"
 >;
-type UseSearchParamStateParams<TVal> = [
+type UseSearchParamStateArgs<TVal> = [
   searchParam: string,
   initialState: TVal,
   hookOptions?: UseSearchParamStateOptions<TVal>,
 ];
 
 type UseSearchParamStateType = <TVal>(
-  ...args: UseSearchParamStateParams<TVal>
+  ...args: UseSearchParamStateArgs<TVal>
 ) => readonly [TVal, (newVal: TVal | ((currVal: TVal) => TVal)) => void];
 
 const SearchParamStateContext = React.createContext<
@@ -222,7 +222,6 @@ function useBuildSearchParamState(
         const urlParams = url.searchParams;
         const initialParamState = urlParams.get(searchParam);
         if (initialParamState === null) {
-          safelySetUrlState(initialState);
           return initialState;
         }
 
@@ -234,20 +233,14 @@ function useBuildSearchParamState(
         const validated =
           validate instanceof Function ? validate(parsed) : parsed;
 
-        if (deleteEmptySearchParam && isEmptySearchParam(validated)) {
-          safelySetUrlState(validated);
-        }
-
         return validated;
       } catch (e) {
         hookOptions.onError?.(e);
         buildOptions.onError?.(e);
-
-        safelySetUrlState(initialState);
         return initialState;
       }
       // avoid putting non-primitives passed by the consumer in the dep array
-    }, [maybeGetHref, safelySetUrlState, searchParam, deleteEmptySearchParam]);
+    }, [maybeGetHref, searchParam]);
 
     React.useEffect(() => {
       const onEvent = () => {
@@ -259,9 +252,7 @@ function useBuildSearchParamState(
       };
     }, [getSearchParam, setState]);
 
-    const [serverState] = React.useState<TVal>(() => {
-      return getSearchParam();
-    });
+    const [serverState] = React.useState<TVal>(() => getSearchParam());
 
     useEffectOnce(() => {
       setState(serverState);
@@ -296,7 +287,7 @@ function useBuildSearchParamState(
 }
 
 function useSearchParamStateContext<TVal>(
-  ...args: UseSearchParamStateParams<TVal>
+  ...args: UseSearchParamStateArgs<TVal>
 ) {
   const context = React.useContext(SearchParamStateContext);
   if (context === undefined) {

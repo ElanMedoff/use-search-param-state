@@ -66,15 +66,11 @@ If the `counter` search param does not exist (i.e. `URLSearchParams.get` returns
 
 Once the `counter` search param is accessed, the raw string is passed to `sanitize`, the output of `sanitize` is passed to `parse`, and finally the output of `parse` is passed to `validate`. Note that `useSearchParamState` aims to return a _parsed_ value, not a _stringified_ value!
 
-If `sanitize`, `parse`, or `validate` throw an error, a few things happen:
-
-1. The `onError` option is called.
-2. `counterState` will be set to the initial state.
-3. The `counter` search param in the URL will be set to the initial state. The initial state is stringified using the `stringify` option, and the URL is set using the `pushState` option. If `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set.
+If `sanitize`, `parse`, or `validate` throw an error, the `onError` option is called and `counterState` will be set to the initial state.
 
 If none of `sanitize`, `parse`, and `validate` throw an error, `counterState` is set to the sanitized, parsed, and validated value in the `counter` search param.
 
-Additionally, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+> Note that `useSearchParamState` intentionally does _not_ set the URL on the first render, since this can cause an infinite loop when navigating backwards. For example, say we have a url `/blog` with a search param `search` defaulted to `hello`. Navigating to `/blog` would immediately add `?search=hello` to the URL, so navigating backwards would push `/blog` ... which would add `?search=hello` to the URL again!
 
 ---
 
@@ -144,12 +140,15 @@ If `parse` throws an error, `onError` will be called, `useSearchParamState` will
 `parse` defaults to:
 
 ```ts
-function defaultParse(unparsed: string) {
+export function defaultParse(unparsed: string) {
   // JSON.parse errors on "undefined"
   if (unparsed === "undefined") return undefined;
 
-  // parseFloat coerces bigints to numbers
-  const maybeNum = parseFloat(unparsed);
+  // Number parses "" to 0
+  if (unparsed === "") return "";
+
+  // Number coerces bigints to numbers
+  const maybeNum = Number(unparsed);
   if (!Number.isNaN(maybeNum)) return maybeNum;
 
   try {
