@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.5 - 2024-03-22
+
+### Fixed
+
+- Update the README to reflect the change in 2.0.4
+
 ## 2.0.4 - 2024-03-22
 
 ### Fixed
