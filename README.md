@@ -96,7 +96,7 @@ interface UseSearchParamStateOptions<TVal> {
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   serverSideURL?: string;
   rollbackOnError?: boolean;
-  pushState?: (href: string) => void;
+  pushState?: (stringifiedSearchParams: string) => void;
   onError?: (e: unknown) => void;
 }
 ```
@@ -268,8 +268,8 @@ A function with the following type: `(href: string) => void`.
 `pushState` defaults to:
 
 ```tsx
-function defaultPushState(href: string) {
-  window.history.pushState({}, "", href);
+function defaultPushState(stringifiedSearchParams: string) {
+  window.history.pushState({}, "", stringifiedSearchParams);
 }
 ```
 

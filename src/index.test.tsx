@@ -110,9 +110,7 @@ describe("useSearchParamState", () => {
           result.current[1](setStateArg);
         });
         expect(result.current[0]).toBe(10);
-        expectPushStateToHaveBeenCalledWith(
-          "http://localhost:3000/?counter=10"
-        );
+        expectPushStateToHaveBeenCalledWith("?counter=10");
       });
 
       describe("when setting the url fails", () => {
@@ -177,7 +175,7 @@ describe("useSearchParamState", () => {
         act(() => {
           result.current[1](setStateArg);
         });
-        expectPushStateToHaveBeenCalledWith("http://localhost:3000/");
+        expectPushStateToHaveBeenCalledWith("");
         expect(result.current[0]).toBe(10);
       });
     }
@@ -204,7 +202,7 @@ describe("useSearchParamState", () => {
         result.current[1](1);
       });
       expect(result.current[0]).toBe(1);
-      expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=10");
+      expectPushStateToHaveBeenCalledWith("?counter=10");
     });
 
     it("when a sanitize option is passed, it should use it", () => {
@@ -245,9 +243,7 @@ describe("useSearchParamState", () => {
         result.current[1](1);
       });
       expect(result.current[0]).toBe(1);
-      expect(pushState).toHaveBeenCalledWith(
-        "http://localhost:3000/?counter=1"
-      );
+      expect(pushState).toHaveBeenCalledWith("?counter=1");
     });
 
     it("when an onError option is passed, it should use it", () => {
@@ -282,7 +278,7 @@ describe("useSearchParamState", () => {
         result.current[1](1);
       });
       expect(result.current[0]).toBe(1);
-      expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=10");
+      expectPushStateToHaveBeenCalledWith("?counter=10");
     });
 
     it("when a sanitize option is passed, it should use it", () => {
@@ -317,9 +313,7 @@ describe("useSearchParamState", () => {
         result.current[1](1);
       });
       expect(result.current[0]).toBe(1);
-      expect(pushState).toHaveBeenCalledWith(
-        "http://localhost:3000/?counter=1"
-      );
+      expect(pushState).toHaveBeenCalledWith("?counter=1");
     });
 
     it("when an onError option is passed, it should use it", () => {
@@ -358,7 +352,7 @@ describe("useSearchParamState", () => {
         result.current[1](1);
       });
       expect(result.current[0]).toBe(1);
-      expectPushStateToHaveBeenCalledWith("http://localhost:3000/?counter=10");
+      expectPushStateToHaveBeenCalledWith("?counter=10");
     });
 
     it("when a sanitize option is passed, it should use the hook option", () => {
@@ -400,9 +394,7 @@ describe("useSearchParamState", () => {
         result.current[1](1);
       });
       expect(result.current[0]).toBe(1);
-      expect(hookPushState).toHaveBeenCalledWith(
-        "http://localhost:3000/?counter=1"
-      );
+      expect(hookPushState).toHaveBeenCalledWith("?counter=1");
       expect(buildPushState).not.toHaveBeenCalled();
     });
 

@@ -63,7 +63,7 @@ interface UseSearchParamStateOptions<TVal> {
    * @param `href` The `href` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
    * @returns
    */
-  pushState?: (href: string) => void;
+  pushState?: (stringifiedSearchParams: string) => void;
   /**
    * @param `e` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
    * @returns
@@ -71,22 +71,27 @@ interface UseSearchParamStateOptions<TVal> {
   onError?: (e: unknown) => void;
 }
 
-export type UseBuildSearchParamStateOptions = Omit<
+export type SearchParamStateProviderOptions = Omit<
   UseSearchParamStateOptions<unknown>,
   "validate" | "serverSideURL"
 >;
-type UseSearchParamStateArgs<TVal> = [
-  searchParam: string,
-  initialState: TVal,
-  hookOptions?: UseSearchParamStateOptions<TVal>,
-];
+// TODO: deprecate next major version
+export type UseBuildSearchParamStateOptions = SearchParamStateProviderOptions;
 
-type UseSearchParamStateType = <TVal>(
-  ...args: UseSearchParamStateArgs<TVal>
-) => readonly [TVal, (newVal: TVal | ((currVal: TVal) => TVal)) => void];
+type GlobalSearchParams = Record<
+  string,
+  { val: unknown; stringifiedVal: string; showSearchParam: boolean }
+>;
 
 const SearchParamStateContext = React.createContext<
-  UseSearchParamStateType | undefined
+  | {
+      buildOptions: SearchParamStateProviderOptions;
+      globalSearchParams: GlobalSearchParams;
+      setGlobalSearchParams: React.Dispatch<
+        React.SetStateAction<GlobalSearchParams>
+      >;
+    }
+  | undefined
 >(undefined);
 
 function SearchParamStateProvider({
@@ -94,212 +99,240 @@ function SearchParamStateProvider({
   options: buildOptions = {},
 }: {
   children: React.ReactNode;
-  options?: UseBuildSearchParamStateOptions;
+  options?: SearchParamStateProviderOptions;
 }) {
-  const useSearchParamState = useBuildSearchParamState(buildOptions);
+  const [globalSearchParams, setGlobalSearchParams] =
+    React.useState<GlobalSearchParams>({});
 
   return (
-    <SearchParamStateContext.Provider value={useSearchParamState}>
+    <SearchParamStateContext.Provider
+      value={{ buildOptions, globalSearchParams, setGlobalSearchParams }}
+    >
       {children}
     </SearchParamStateContext.Provider>
   );
 }
 
-function useBuildSearchParamState(
-  buildOptions: UseBuildSearchParamStateOptions = {}
+function useSearchParamState<TVal>(
+  /**
+   * The name of the URL search param to read from and write to.
+   *
+   * See MDN's documentation on [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) for more info.
+   */
+  searchParam: string,
+  /**
+   * The initial state returned by `useSearchParamState` if no valid URL search param is present to read from.
+   *
+   * Note that if `sanitize`, `parse`, or `validate` throw an error, the initial state is set in the URL and returned by `useSearchParamState`.
+   */
+  initialState: TVal,
+  /**
+   * Options passed by a particular instance of `useSearchParamState`.
+   *
+   * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
+   */
+  hookOptions: UseSearchParamStateOptions<TVal> = {}
 ) {
-  const [globalSearchParams, setGlobalSearchParams] = React.useState<
-    Record<string, any>
-  >({});
-
-  return function useSearchParamState<TVal>(
-    /**
-     * The name of the URL search param to read from and write to.
-     *
-     * See MDN's documentation on [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) for more info.
-     */
-    searchParam: string,
-    /**
-     * The initial state returned by `useSearchParamState` if no valid URL search param is present to read from.
-     *
-     * Note that if `sanitize`, `parse`, or `validate` throw an error, the initial state is set in the URL and returned by `useSearchParamState`.
-     */
-    initialState: TVal,
-    /**
-     * Options passed by a particular instance of `useSearchParamState`.
-     *
-     * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
-     */
-    hookOptions: UseSearchParamStateOptions<TVal> = {}
-  ) {
-    const stringify =
-      hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
-    const parse =
-      hookOptions.parse ??
-      (buildOptions.parse as (unparsed: string) => TVal) ??
-      (defaultParse as (unparsed: string) => TVal);
-    const rollbackOnError =
-      hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
-    const pushState =
-      hookOptions.pushState ??
-      buildOptions.pushState ??
-      ((href: string) => {
-        window.history.pushState({}, "", href);
-      });
-    const sanitize = hookOptions.sanitize ?? buildOptions.sanitize;
-    const deleteEmptySearchParam =
-      hookOptions.deleteEmptySearchParam ??
-      buildOptions.deleteEmptySearchParam ??
-      false;
-
-    const isEmptySearchParam =
-      hookOptions.isEmptySearchParam ??
-      buildOptions.isEmptySearchParam ??
-      defaultIsEmptySearchParam;
-
-    const { validate, serverSideURL } = hookOptions;
-
-    const [isFirstRender, setIsFirstRender] = React.useState(true);
-
-    const setState = React.useCallback(
-      (newState: TVal) => {
-        setGlobalSearchParams((prev) => {
-          return {
-            ...prev,
-            [searchParam]: newState,
-          };
-        });
-      },
-      [searchParam]
-    );
-
-    const maybeGetHref = React.useCallback(() => {
-      if (isWindowUndefined()) {
-        if (typeof serverSideURL === "string") {
-          return serverSideURL;
-        }
-        return null;
-      }
-      return window.location.href;
-    }, [serverSideURL]);
-
-    const safelySetUrlState = React.useCallback(
-      (value: TVal) => {
-        try {
-          const href = maybeGetHref();
-          if (href === null) {
-            return { success: false };
-          }
-          const url = new URL(href);
-          if (deleteEmptySearchParam && isEmptySearchParam(value)) {
-            url.searchParams.delete(searchParam);
-            pushState(url.href);
-            return { success: true };
-          }
-
-          const stringified = stringify(value);
-          url.searchParams.set(searchParam, stringified);
-          pushState(url.href);
-          return { success: true };
-        } catch (e) {
-          hookOptions.onError?.(e);
-          buildOptions.onError?.(e);
-          return { success: false };
-        }
-      },
-      // avoid putting non-primitives passed by the consumer in the dep array
-      [maybeGetHref, deleteEmptySearchParam, searchParam]
-    );
-
-    const getSearchParam = React.useCallback(() => {
-      try {
-        const href = maybeGetHref();
-        if (href === null) {
-          return initialState;
-        }
-
-        const url = new URL(href);
-        const urlParams = url.searchParams;
-        const initialParamState = urlParams.get(searchParam);
-        if (initialParamState === null) {
-          return initialState;
-        }
-
-        const sanitized =
-          sanitize instanceof Function
-            ? sanitize(initialParamState)
-            : initialParamState;
-        const parsed = parse(sanitized);
-        const validated =
-          validate instanceof Function ? validate(parsed) : parsed;
-
-        return validated;
-      } catch (e) {
-        hookOptions.onError?.(e);
-        buildOptions.onError?.(e);
-        return initialState;
-      }
-      // avoid putting non-primitives passed by the consumer in the dep array
-    }, [maybeGetHref, searchParam]);
-
-    React.useEffect(() => {
-      const onEvent = () => {
-        setState(getSearchParam());
-      };
-      window.addEventListener("popstate", onEvent);
-      return () => {
-        window.removeEventListener("popstate", onEvent);
-      };
-    }, [getSearchParam, setState]);
-
-    const [serverState] = React.useState<TVal>(() => getSearchParam());
-
-    useEffectOnce(() => {
-      setState(serverState);
-      setIsFirstRender(false);
-    });
-
-    const currSearchParamState = isFirstRender
-      ? serverState
-      : (globalSearchParams[searchParam] as TVal);
-
-    const wrappedSetState = React.useCallback(
-      (newVal: TVal | ((currVal: TVal) => TVal)) => {
-        if (newVal instanceof Function) {
-          const { success } = safelySetUrlState(newVal(currSearchParamState));
-
-          if (success || !rollbackOnError) {
-            setState(newVal(currSearchParamState));
-          }
-          return;
-        }
-
-        const { success } = safelySetUrlState(newVal);
-        if (success || !rollbackOnError) {
-          setState(newVal);
-        }
-      },
-      [rollbackOnError, safelySetUrlState, setState, currSearchParamState]
-    );
-
-    return [currSearchParamState, wrappedSetState] as const;
-  };
-}
-
-function useSearchParamStateContext<TVal>(
-  ...args: UseSearchParamStateArgs<TVal>
-) {
-  const context = React.useContext(SearchParamStateContext);
-  if (context === undefined) {
+  const maybeContext = React.useContext(SearchParamStateContext);
+  if (maybeContext === undefined) {
     throw new Error(
       "useSearchParamState can only be called by a component that is a child of SearchParamStateProvider."
     );
   }
-  return context(...args);
+  return useSearchParamStateInner<TVal>(searchParam, initialState, hookOptions);
 }
 
-export {
-  SearchParamStateProvider,
-  useSearchParamStateContext as useSearchParamState,
-};
+function useSearchParamStateInner<TVal>(
+  searchParam: string,
+  initialState: TVal,
+  hookOptions: UseSearchParamStateOptions<TVal>
+) {
+  const { buildOptions, globalSearchParams, setGlobalSearchParams } =
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    React.useContext(SearchParamStateContext)!;
+
+  const stringify =
+    hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
+  const parse =
+    hookOptions.parse ??
+    (buildOptions.parse as (unparsed: string) => TVal) ??
+    (defaultParse as (unparsed: string) => TVal);
+  const rollbackOnError =
+    hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
+  const pushState =
+    hookOptions.pushState ??
+    buildOptions.pushState ??
+    ((stringifiedSearchParams: string) => {
+      window.history.pushState({}, "", stringifiedSearchParams);
+    });
+  const sanitize = hookOptions.sanitize ?? buildOptions.sanitize;
+  const deleteEmptySearchParam =
+    hookOptions.deleteEmptySearchParam ??
+    buildOptions.deleteEmptySearchParam ??
+    false;
+
+  const isEmptySearchParam =
+    hookOptions.isEmptySearchParam ??
+    buildOptions.isEmptySearchParam ??
+    defaultIsEmptySearchParam;
+
+  const { validate, serverSideURL } = hookOptions;
+
+  const [isFirstRender, setIsFirstRender] = React.useState(true);
+
+  const setState = React.useCallback(
+    (newVal: TVal) => {
+      setGlobalSearchParams((prev) => {
+        return {
+          ...prev,
+          [searchParam]: {
+            stringifiedVal: stringify(newVal),
+            val: newVal,
+            showSearchParam: !(
+              deleteEmptySearchParam && isEmptySearchParam(newVal)
+            ),
+          },
+        };
+      });
+    },
+    [deleteEmptySearchParam, searchParam, setGlobalSearchParams]
+  );
+
+  const maybeGetHref = React.useCallback(() => {
+    if (isWindowUndefined()) {
+      if (typeof serverSideURL === "string") {
+        return serverSideURL;
+      }
+      return null;
+    }
+    return window.location.href;
+  }, [serverSideURL]);
+
+  const safelySetUrlState = React.useCallback(
+    (val: TVal) => {
+      try {
+        const stringifiedGlobalSearchParams: Record<string, string> =
+          Object.keys(globalSearchParams).reduce((accum, currSearchParam) => {
+            if (!globalSearchParams[currSearchParam].showSearchParam) {
+              return accum;
+            }
+
+            return {
+              ...accum,
+              [currSearchParam]:
+                globalSearchParams[currSearchParam].stringifiedVal,
+            };
+          }, {});
+
+        const searchParamsObj = new URLSearchParams(
+          stringifiedGlobalSearchParams
+        );
+
+        const href = maybeGetHref();
+        if (href === null) {
+          return { success: false };
+        }
+        if (deleteEmptySearchParam && isEmptySearchParam(val)) {
+          searchParamsObj.delete(searchParam);
+          if (searchParamsObj.toString().length > 0) {
+            pushState(`?${searchParamsObj.toString()}`);
+          } else {
+            pushState("");
+          }
+          return { success: true };
+        }
+
+        const stringified = stringify(val);
+        searchParamsObj.set(searchParam, stringified);
+        if (searchParamsObj.toString().length > 0) {
+          pushState(`?${searchParamsObj.toString()}`);
+        } else {
+          pushState("");
+        }
+        return { success: true };
+      } catch (e) {
+        hookOptions.onError?.(e);
+        buildOptions.onError?.(e);
+        return { success: false };
+      }
+    },
+    // avoid putting non-primitives passed by the consumer in the dep array
+    [maybeGetHref, deleteEmptySearchParam, searchParam, globalSearchParams]
+  );
+
+  const getSearchParam = React.useCallback(() => {
+    try {
+      const href = maybeGetHref();
+      if (href === null) {
+        return initialState;
+      }
+
+      const url = new URL(href);
+      const urlParams = url.searchParams;
+      const initialParamState = urlParams.get(searchParam);
+      if (initialParamState === null) {
+        return initialState;
+      }
+
+      const sanitized =
+        sanitize instanceof Function
+          ? sanitize(initialParamState)
+          : initialParamState;
+      const parsed = parse(sanitized);
+      const validated =
+        validate instanceof Function ? validate(parsed) : parsed;
+
+      return validated;
+    } catch (e) {
+      hookOptions.onError?.(e);
+      buildOptions.onError?.(e);
+      return initialState;
+    }
+    // avoid putting non-primitives passed by the consumer in the dep array
+  }, [maybeGetHref, searchParam]);
+
+  React.useEffect(() => {
+    const onEvent = () => {
+      setState(getSearchParam());
+    };
+    window.addEventListener("popstate", onEvent);
+    return () => {
+      window.removeEventListener("popstate", onEvent);
+    };
+  }, [getSearchParam, setState]);
+
+  const [serverState] = React.useState<TVal>(() => getSearchParam());
+
+  useEffectOnce(() => {
+    setIsFirstRender(false);
+    setState(serverState);
+  });
+
+  const currSearchParamState = isFirstRender
+    ? serverState
+    : (globalSearchParams[searchParam].val as TVal);
+
+  const wrappedSetState = React.useCallback(
+    (newVal: TVal | ((currVal: TVal) => TVal)) => {
+      if (newVal instanceof Function) {
+        const { success } = safelySetUrlState(newVal(currSearchParamState));
+
+        if (success || !rollbackOnError) {
+          setState(newVal(currSearchParamState));
+        }
+        return;
+      }
+
+      const { success } = safelySetUrlState(newVal);
+      if (success || !rollbackOnError) {
+        setState(newVal);
+      }
+    },
+    [currSearchParamState, rollbackOnError, safelySetUrlState, setState]
+  );
+
+  return [currSearchParamState, wrappedSetState] as const;
+}
+
+export { SearchParamStateProvider, useSearchParamState };
 export type { UseSearchParamStateOptions };
