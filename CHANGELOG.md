@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.6 - 2024-03-23
+
+### Fixed
+
+- Fix race condition when multiple instance of `useSearchParamState` were attempting to set the URL in the same render.
+
 ## 2.0.5 - 2024-03-22
 
 ### Fixed
