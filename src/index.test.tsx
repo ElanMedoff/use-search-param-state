@@ -100,17 +100,36 @@ describe("useSearchParamState", () => {
 
   describe("setState", () => {
     function expectSetStateToWork(setStateArg: number | (() => number)) {
-      it("when setting the url succeeds, it should set the state", async () => {
-        const { result } = wrappedRenderHook(() =>
-          useSearchParamState("counter", 0)
-        );
-        expect(result.current[0]).toBe(0);
-        expect(window.history.pushState).not.toHaveBeenCalled();
-        act(() => {
-          result.current[1](setStateArg);
+      describe("when setting the url succeeds", () => {
+        it("should set the state", async () => {
+          const { result } = wrappedRenderHook(() =>
+            useSearchParamState("counter", 0)
+          );
+          expect(result.current[0]).toBe(0);
+          expect(window.history.pushState).not.toHaveBeenCalled();
+          act(() => {
+            result.current[1](setStateArg);
+          });
+          expect(result.current[0]).toBe(10);
+          expectPushStateToHaveBeenCalledWith("?counter=10");
         });
-        expect(result.current[0]).toBe(10);
-        expectPushStateToHaveBeenCalledWith("?counter=10");
+
+        it("should not override unrelated search params", async () => {
+          Object.defineProperty(window, "location", {
+            writable: true,
+            value: { href: "http://localhost:3000/?asdf=1" },
+          });
+          const { result } = wrappedRenderHook(() =>
+            useSearchParamState("counter", 0)
+          );
+          expect(result.current[0]).toBe(0);
+          expect(window.history.pushState).not.toHaveBeenCalled();
+          act(() => {
+            result.current[1](setStateArg);
+          });
+          expect(result.current[0]).toBe(10);
+          expectPushStateToHaveBeenCalledWith("?asdf=1&counter=10");
+        });
       });
 
       describe("when setting the url fails", () => {

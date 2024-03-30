@@ -17,11 +17,13 @@ interface UseSearchParamStateOptions<TVal> {
    * @returns The sanitized string.
    */
   sanitize?: (unsanitized: string) => string;
+
   /**
    * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
    * @returns A parsed value of the type `TVal` i.e. the type of `initialState`.
    */
   parse?: (unparsed: string) => TVal;
+
   /**
    * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
    *
@@ -29,17 +31,20 @@ interface UseSearchParamStateOptions<TVal> {
    * @returns The `unvalidated` argument, now validated as of type `TVal`.
    */
   validate?: (unvalidated: unknown) => TVal;
+
   /**
    * @param `valToStringify` The search param to stringify before setting it in the URL.
    * @returns The stringified search param.
    */
   stringify?: (valToStringify: TVal) => string;
+
   /**
    * A `boolean`.
    *
    * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    */
   deleteEmptySearchParam?: boolean;
+
   /**
    * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    *
@@ -47,23 +52,27 @@ interface UseSearchParamStateOptions<TVal> {
    * @returns A boolean.
    */
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
+
   /**
    * A value of type `string` - any valid string input to the `URL` constructor.
    *
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
    */
   serverSideURL?: string;
+
   /**
    * A `boolean`.
    *
    * When calling the `setState` function returned by `useSearchParamState`, `pushState` will be called to set the URL search param with the latest React state value. If setting the search param in the URL throws an error, and `rollbackOnError` is set to `true`, the local React state will "rollback" to its previous value.
    */
   rollbackOnError?: boolean;
+
   /**
    * @param `href` The `href` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
    * @returns
    */
   pushState?: (stringifiedSearchParams: string) => void;
+
   /**
    * @param `e` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
    * @returns
@@ -120,12 +129,14 @@ function useSearchParamState<TVal>(
    * See MDN's documentation on [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) for more info.
    */
   searchParam: string,
+
   /**
    * The initial state returned by `useSearchParamState` if no valid URL search param is present to read from.
    *
    * Note that if `sanitize`, `parse`, or `validate` throw an error, the initial state is set in the URL and returned by `useSearchParamState`.
    */
   initialState: TVal,
+
   /**
    * Options passed by a particular instance of `useSearchParamState`.
    *
@@ -211,6 +222,16 @@ function useSearchParamStateInner<TVal>(
   const safelySetUrlState = React.useCallback(
     (val: TVal) => {
       try {
+        const href = maybeGetHref();
+        if (href === null) {
+          return { success: false };
+        }
+        const unrelatedSearchParams = Object.fromEntries(
+          Array.from(new URL(href).searchParams.entries()).filter(
+            ([searchParam]) => !Object.hasOwn(globalSearchParams, searchParam)
+          )
+        );
+
         const stringifiedGlobalSearchParams: Record<string, string> =
           Object.keys(globalSearchParams).reduce((accum, currSearchParam) => {
             if (!globalSearchParams[currSearchParam].showSearchParam) {
@@ -222,16 +243,12 @@ function useSearchParamStateInner<TVal>(
               [currSearchParam]:
                 globalSearchParams[currSearchParam].stringifiedVal,
             };
-          }, {});
+          }, unrelatedSearchParams);
 
         const searchParamsObj = new URLSearchParams(
           stringifiedGlobalSearchParams
         );
 
-        const href = maybeGetHref();
-        if (href === null) {
-          return { success: false };
-        }
         if (deleteEmptySearchParam && isEmptySearchParam(val)) {
           searchParamsObj.delete(searchParam);
           if (searchParamsObj.toString().length > 0) {
