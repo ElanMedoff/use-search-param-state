@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.7 - 2024-03-29
+
+### Fixed
+
+- Avoid overriding search params that aren't managed by the hook.
+
 ## 2.0.6 - 2024-03-23
 
 ### Fixed
