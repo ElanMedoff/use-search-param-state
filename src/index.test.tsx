@@ -194,7 +194,7 @@ describe("useSearchParamState", () => {
         act(() => {
           result.current[1](setStateArg);
         });
-        expectPushStateToHaveBeenCalledWith("");
+        expect(window.history.pushState).toHaveBeenCalledTimes(0);
         expect(result.current[0]).toBe(10);
       });
     }

@@ -6,11 +6,6 @@ import {
   isWindowUndefined,
 } from "./helpers";
 
-function useEffectOnce(effect: React.EffectCallback) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(effect, []);
-}
-
 interface UseSearchParamStateOptions<TVal> {
   /**
    * @param `unsanitized` The raw string pulled from the URL search param.
@@ -189,8 +184,6 @@ function useSearchParamStateInner<TVal>(
 
   const { validate, serverSideURL } = hookOptions;
 
-  const [isFirstRender, setIsFirstRender] = React.useState(true);
-
   const setState = React.useCallback(
     (newVal: TVal) => {
       setGlobalSearchParams((prev) => {
@@ -206,6 +199,7 @@ function useSearchParamStateInner<TVal>(
         };
       });
     },
+    // avoid putting non-primitives passed by the consumer in the dep array
     [deleteEmptySearchParam, searchParam, setGlobalSearchParams]
   );
 
@@ -252,9 +246,8 @@ function useSearchParamStateInner<TVal>(
         if (deleteEmptySearchParam && isEmptySearchParam(val)) {
           searchParamsObj.delete(searchParam);
           if (searchParamsObj.toString().length > 0) {
+            // URLSearchParams.toString() does not include a `?`
             pushState(`?${searchParamsObj.toString()}`);
-          } else {
-            pushState("");
           }
           return { success: true };
         }
@@ -262,9 +255,8 @@ function useSearchParamStateInner<TVal>(
         const stringified = stringify(val);
         searchParamsObj.set(searchParam, stringified);
         if (searchParamsObj.toString().length > 0) {
+          // URLSearchParams.toString() does not include a `?`
           pushState(`?${searchParamsObj.toString()}`);
-        } else {
-          pushState("");
         }
         return { success: true };
       } catch (e) {
@@ -318,12 +310,13 @@ function useSearchParamStateInner<TVal>(
     };
   }, [getSearchParam, setState]);
 
+  const [isFirstRender, setIsFirstRender] = React.useState(true);
   const [serverState] = React.useState<TVal>(() => getSearchParam());
 
-  useEffectOnce(() => {
+  React.useEffect(() => {
     setIsFirstRender(false);
     setState(serverState);
-  });
+  }, [serverState, setState]);
 
   const currSearchParamState = isFirstRender
     ? serverState
