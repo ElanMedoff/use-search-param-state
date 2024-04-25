@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.9 - 2024-04-25
+
+### Fixed
+
+- Add github action to publish to npm with provenance.
+
 ## 2.0.8 - 2024-04-25
 
 ### Fixed
