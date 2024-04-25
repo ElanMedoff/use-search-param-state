@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.8 - 2024-04-25
+
+### Fixed
+
+- Avoid calling `pushState` with an empty string.
+
 ## 2.0.7 - 2024-03-29
 
 ### Fixed
