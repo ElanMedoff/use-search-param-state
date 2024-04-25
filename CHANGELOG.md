@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.10 - 2024-04-25
+
+### Fixed
+
+- Add build step to publishing github action.
+
 ## 2.0.9 - 2024-04-25
 
 ### Fixed

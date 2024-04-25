@@ -12,7 +12,3 @@ read VERSION
 git add -A
 git commit -m "version: v$VERSION"
 git push origin head
-
-npm run build
-npm publish
-
