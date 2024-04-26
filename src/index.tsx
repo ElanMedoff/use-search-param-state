@@ -219,7 +219,6 @@ function useSearchParamStateInner<TVal>(
         };
       });
     },
-    // avoid putting non-primitives passed by the consumer in the dep array
     [deleteEmptySearchParam, searchParam, setGlobalSearchParams]
   );
 
@@ -318,7 +317,6 @@ function useSearchParamStateInner<TVal>(
       buildOnErrorRef.current?.(e);
       return initialStateRef.current;
     }
-    // avoid putting non-primitives passed by the consumer in the dep array
   }, [maybeGetHref, searchParam]);
 
   React.useEffect(() => {
