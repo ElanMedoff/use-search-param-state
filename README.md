@@ -300,12 +300,23 @@ window.location = { search: "?counter=1" };
 
 You may receive an error that `window.location` is read-only.
 
-## Known limitations
+---
 
-`useSearchParamState` creates an event listener to re-read the search param on `popstate` events with a `useEffect`. To prevent the `useEffect` from running after every render, it's provided with a dependency array. However, since several options passed by the user are not referentially stable, these options are intentionally excluded from the dependency array. These include: `initialState`, `isEmptySearchParam`, `sanitize`, `stringify`, `parse`, `validate`, and `onError`
+Also note that since this library utilizes context, you'll need to use a `wrappedRender` like the following when testing components outside your root:
 
-This is almost certainly beneficial to the consumer, since it's very unlikely that the developer would preemptively wrap these options in a `useCallback`/`useMemo` to maintain referential stability, and it's very unlikely that these values would ever change intentionally.
+```tsx
+import { render, RenderOptions } from "@testing-library/react";
 
-However, say we have a scenario where the consumer decides to memoize two different `validate` functions and conditionally passes one or the other as the `validate` option - when the condition changes and the option updates, `useSearchParamState` will not recognize that `validate` has changed. In this situation, the event listener will not be updated to use the latest `validate` option.
+function wrappedRender(
+  ui: React.ReactElement,
+  options?: Omit<RenderOptions, "wrapper">
+) {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <SearchParamStateProvider>{children}</SearchParamStateProvider>
+  );
 
-If you run into this problem yourself, please create an [issue](https://github.com/ElanMedoff/use-search-param-state/issues) on Github 🙏.
+  return render(ui, { wrapper, ...options });
+}
+```
+
+If `useSearchParamState` is used without a parent `SearchParamStateProvider`, it'll throw an error.
