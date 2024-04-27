@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.11 - 2024-04-26
+
+### Fixed
+
+- Add all functions passed by the consumer to the various dependency arrays. Uses a ref-based workaround to avoid adding and removing the `popstate` event listener every render.
+
 ## 2.0.10 - 2024-04-25
 
 ### Fixed

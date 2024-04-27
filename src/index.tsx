@@ -157,32 +157,57 @@ function useSearchParamStateInner<TVal>(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     React.useContext(SearchParamStateContext)!;
 
-  const stringify =
+  const stringifyOption =
     hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
-  const parse =
+  const parseOption =
     hookOptions.parse ??
     (buildOptions.parse as (unparsed: string) => TVal) ??
     (defaultParse as (unparsed: string) => TVal);
   const rollbackOnError =
     hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
-  const pushState =
+  const pushStateOption =
     hookOptions.pushState ??
     buildOptions.pushState ??
     ((stringifiedSearchParams: string) => {
       window.history.pushState({}, "", stringifiedSearchParams);
     });
-  const sanitize = hookOptions.sanitize ?? buildOptions.sanitize;
+  const sanitizeOption =
+    hookOptions.sanitize ??
+    buildOptions.sanitize ??
+    ((unsanitized: string) => unsanitized);
   const deleteEmptySearchParam =
     hookOptions.deleteEmptySearchParam ??
     buildOptions.deleteEmptySearchParam ??
     false;
-
-  const isEmptySearchParam =
+  const isEmptySearchParamOption =
     hookOptions.isEmptySearchParam ??
     buildOptions.isEmptySearchParam ??
     defaultIsEmptySearchParam;
+  const validateOption =
+    hookOptions.validate ?? ((unvalidated: unknown) => unvalidated as TVal);
+  const { serverSideURL } = hookOptions;
 
-  const { validate, serverSideURL } = hookOptions;
+  const stringifyRef = React.useRef(stringifyOption);
+  const parseRef = React.useRef(parseOption);
+  const pushStateRef = React.useRef(pushStateOption);
+  const sanitizeRef = React.useRef(sanitizeOption);
+  const isEmptySearchParamRef = React.useRef(isEmptySearchParamOption);
+  const validateRef = React.useRef(validateOption);
+  const buildOnErrorRef = React.useRef(buildOptions.onError);
+  const hookOnErrorRef = React.useRef(hookOptions.onError);
+  const initialStateRef = React.useRef(initialState);
+
+  React.useEffect(() => {
+    stringifyRef.current = stringifyOption;
+    parseRef.current = parseOption;
+    pushStateRef.current = pushStateOption;
+    sanitizeRef.current = sanitizeOption;
+    isEmptySearchParamRef.current = isEmptySearchParamOption;
+    validateRef.current = validateOption;
+    buildOnErrorRef.current = buildOptions.onError;
+    hookOnErrorRef.current = hookOptions.onError;
+    initialStateRef.current = initialState;
+  });
 
   const setState = React.useCallback(
     (newVal: TVal) => {
@@ -190,16 +215,15 @@ function useSearchParamStateInner<TVal>(
         return {
           ...prev,
           [searchParam]: {
-            stringifiedVal: stringify(newVal),
+            stringifiedVal: stringifyRef.current(newVal),
             val: newVal,
             showSearchParam: !(
-              deleteEmptySearchParam && isEmptySearchParam(newVal)
+              deleteEmptySearchParam && isEmptySearchParamRef.current(newVal)
             ),
           },
         };
       });
     },
-    // avoid putting non-primitives passed by the consumer in the dep array
     [deleteEmptySearchParam, searchParam, setGlobalSearchParams]
   );
 
@@ -243,61 +267,55 @@ function useSearchParamStateInner<TVal>(
           stringifiedGlobalSearchParams
         );
 
-        if (deleteEmptySearchParam && isEmptySearchParam(val)) {
+        if (deleteEmptySearchParam && isEmptySearchParamRef.current(val)) {
           searchParamsObj.delete(searchParam);
           if (searchParamsObj.toString().length > 0) {
             // URLSearchParams.toString() does not include a `?`
-            pushState(`?${searchParamsObj.toString()}`);
+            pushStateRef.current(`?${searchParamsObj.toString()}`);
           }
           return { success: true };
         }
 
-        const stringified = stringify(val);
+        const stringified = stringifyRef.current(val);
         searchParamsObj.set(searchParam, stringified);
         if (searchParamsObj.toString().length > 0) {
           // URLSearchParams.toString() does not include a `?`
-          pushState(`?${searchParamsObj.toString()}`);
+          pushStateRef.current(`?${searchParamsObj.toString()}`);
         }
         return { success: true };
       } catch (e) {
-        hookOptions.onError?.(e);
-        buildOptions.onError?.(e);
+        hookOnErrorRef.current?.(e);
+        buildOnErrorRef.current?.(e);
         return { success: false };
       }
     },
-    // avoid putting non-primitives passed by the consumer in the dep array
-    [maybeGetHref, deleteEmptySearchParam, searchParam, globalSearchParams]
+    [deleteEmptySearchParam, globalSearchParams, maybeGetHref, searchParam]
   );
 
   const getSearchParam = React.useCallback(() => {
     try {
       const href = maybeGetHref();
       if (href === null) {
-        return initialState;
+        return initialStateRef.current;
       }
 
       const url = new URL(href);
       const urlParams = url.searchParams;
       const initialParamState = urlParams.get(searchParam);
       if (initialParamState === null) {
-        return initialState;
+        return initialStateRef.current;
       }
 
-      const sanitized =
-        sanitize instanceof Function
-          ? sanitize(initialParamState)
-          : initialParamState;
-      const parsed = parse(sanitized);
-      const validated =
-        validate instanceof Function ? validate(parsed) : parsed;
+      const sanitized = sanitizeRef.current(initialParamState);
+      const parsed = parseRef.current(sanitized);
+      const validated = validateRef.current(parsed);
 
       return validated;
     } catch (e) {
-      hookOptions.onError?.(e);
-      buildOptions.onError?.(e);
-      return initialState;
+      hookOnErrorRef.current?.(e);
+      buildOnErrorRef.current?.(e);
+      return initialStateRef.current;
     }
-    // avoid putting non-primitives passed by the consumer in the dep array
   }, [maybeGetHref, searchParam]);
 
   React.useEffect(() => {
