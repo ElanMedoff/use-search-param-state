@@ -171,7 +171,10 @@ function useSearchParamStateInner<TVal>(
     ((stringifiedSearchParams: string) => {
       window.history.pushState({}, "", stringifiedSearchParams);
     });
-  const sanitizeOption = hookOptions.sanitize ?? buildOptions.sanitize;
+  const sanitizeOption =
+    hookOptions.sanitize ??
+    buildOptions.sanitize ??
+    ((unsanitized: string) => unsanitized);
   const deleteEmptySearchParam =
     hookOptions.deleteEmptySearchParam ??
     buildOptions.deleteEmptySearchParam ??
@@ -180,7 +183,9 @@ function useSearchParamStateInner<TVal>(
     hookOptions.isEmptySearchParam ??
     buildOptions.isEmptySearchParam ??
     defaultIsEmptySearchParam;
-  const { validate: validateOption, serverSideURL } = hookOptions;
+  const validateOption =
+    hookOptions.validate ?? ((unvalidated: unknown) => unvalidated as TVal);
+  const { serverSideURL } = hookOptions;
 
   const stringifyRef = React.useRef(stringifyOption);
   const parseRef = React.useRef(parseOption);
@@ -301,15 +306,9 @@ function useSearchParamStateInner<TVal>(
         return initialStateRef.current;
       }
 
-      const sanitized =
-        sanitizeRef.current instanceof Function
-          ? sanitizeRef.current(initialParamState)
-          : initialParamState;
+      const sanitized = sanitizeRef.current(initialParamState);
       const parsed = parseRef.current(sanitized);
-      const validated =
-        validateRef.current instanceof Function
-          ? validateRef.current(parsed)
-          : parsed;
+      const validated = validateRef.current(parsed);
 
       return validated;
     } catch (e) {
