@@ -137,12 +137,12 @@ function useSearchParamState<TVal>(
    *
    * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
    */
-  hookOptions: UseSearchParamStateOptions<TVal> = {}
+  hookOptions: UseSearchParamStateOptions<TVal> = {},
 ) {
   const maybeContext = React.useContext(SearchParamStateContext);
   if (maybeContext === undefined) {
     throw new Error(
-      "useSearchParamState can only be called by a component that is a child of SearchParamStateProvider."
+      "useSearchParamState can only be called by a component that is a child of SearchParamStateProvider.",
     );
   }
   return useSearchParamStateInner<TVal>(searchParam, initialState, hookOptions);
@@ -151,18 +151,17 @@ function useSearchParamState<TVal>(
 function useSearchParamStateInner<TVal>(
   searchParam: string,
   initialState: TVal,
-  hookOptions: UseSearchParamStateOptions<TVal>
+  hookOptions: UseSearchParamStateOptions<TVal>,
 ) {
   const { buildOptions, globalSearchParams, setGlobalSearchParams } =
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     React.useContext(SearchParamStateContext)!;
 
   const stringifyOption =
     hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
   const parseOption =
     hookOptions.parse ??
-    (buildOptions.parse as (unparsed: string) => TVal) ??
-    (defaultParse as (unparsed: string) => TVal);
+    (buildOptions.parse as UseSearchParamStateOptions<TVal>["parse"]) ??
+    (defaultParse as Required<UseSearchParamStateOptions<TVal>>["parse"]);
   const rollbackOnError =
     hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
   const pushStateOption =
@@ -224,7 +223,7 @@ function useSearchParamStateInner<TVal>(
         };
       });
     },
-    [deleteEmptySearchParam, searchParam, setGlobalSearchParams]
+    [deleteEmptySearchParam, searchParam, setGlobalSearchParams],
   );
 
   const maybeGetHref = React.useCallback(() => {
@@ -246,25 +245,25 @@ function useSearchParamStateInner<TVal>(
         }
         const unrelatedSearchParams = Object.fromEntries(
           Array.from(new URL(href).searchParams.entries()).filter(
-            ([searchParam]) => !Object.hasOwn(globalSearchParams, searchParam)
-          )
+            ([searchParam]) => !Object.hasOwn(globalSearchParams, searchParam),
+          ),
         );
 
         const stringifiedGlobalSearchParams: Record<string, string> =
           Object.keys(globalSearchParams).reduce((accum, currSearchParam) => {
-            if (!globalSearchParams[currSearchParam].showSearchParam) {
+            if (!globalSearchParams[currSearchParam]!.showSearchParam) {
               return accum;
             }
 
             return {
               ...accum,
               [currSearchParam]:
-                globalSearchParams[currSearchParam].stringifiedVal,
+                globalSearchParams[currSearchParam]!.stringifiedVal,
             };
           }, unrelatedSearchParams);
 
         const searchParamsObj = new URLSearchParams(
-          stringifiedGlobalSearchParams
+          stringifiedGlobalSearchParams,
         );
 
         if (deleteEmptySearchParam && isEmptySearchParamRef.current(val)) {
@@ -289,7 +288,7 @@ function useSearchParamStateInner<TVal>(
         return { success: false };
       }
     },
-    [deleteEmptySearchParam, globalSearchParams, maybeGetHref, searchParam]
+    [deleteEmptySearchParam, globalSearchParams, maybeGetHref, searchParam],
   );
 
   const getSearchParam = React.useCallback(() => {
@@ -338,7 +337,7 @@ function useSearchParamStateInner<TVal>(
 
   const currSearchParamState = isFirstRender
     ? serverState
-    : (globalSearchParams[searchParam].val as TVal);
+    : (globalSearchParams[searchParam]!.val as TVal);
 
   const wrappedSetState = React.useCallback(
     (newVal: TVal | ((currVal: TVal) => TVal)) => {
@@ -356,7 +355,7 @@ function useSearchParamStateInner<TVal>(
         setState(newVal);
       }
     },
-    [currSearchParamState, rollbackOnError, safelySetUrlState, setState]
+    [currSearchParamState, rollbackOnError, safelySetUrlState, setState],
   );
 
   return [currSearchParamState, wrappedSetState] as const;

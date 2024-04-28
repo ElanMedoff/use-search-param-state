@@ -3,7 +3,7 @@ export function isWindowUndefined() {
   return typeof window === "undefined";
 }
 
-export function defaultParse(unparsed: string) {
+export function defaultParse(unparsed: string): unknown {
   // JSON.parse errors on "undefined"
   if (unparsed === "undefined") return undefined;
 
