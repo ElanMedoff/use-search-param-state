@@ -160,8 +160,8 @@ function useSearchParamStateInner<TVal>(
     hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
   const parseOption =
     hookOptions.parse ??
-    (buildOptions.parse as ((unparsed: string) => TVal) | undefined) ??
-    (defaultParse as (unparsed: string) => TVal);
+    (buildOptions.parse as UseSearchParamStateOptions<TVal>["parse"]) ??
+    (defaultParse as Required<UseSearchParamStateOptions<TVal>>["parse"]);
   const rollbackOnError =
     hookOptions.rollbackOnError ?? buildOptions.rollbackOnError ?? false;
   const pushStateOption =
