@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.13 - 2024-04-27
+
+### Fixed
+
+- Fixed a typo of the package name in the README.
+
 ## 2.0.12 - 2024-04-27
 
 ### Fixed

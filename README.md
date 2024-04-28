@@ -35,7 +35,7 @@ function Demo() {
 or
 
 ```tsx
-import { useSearchParamState } from "use-search-param";
+import { useSearchParamState } from "use-search-param-state";
 import { z } from "zod";
 
 function Root() {
@@ -106,7 +106,7 @@ Note that `sanitize`, `parse`, and `validate` run in the following order when pu
 ```tsx
 // simplified
 const rawSearchParam = new URLSearchParams(window.location.search).get(
-  searchParam
+  searchParam,
 );
 const sanitized = options.sanitize(rawSearchParam);
 const parsed = options.parse(sanitized);
@@ -309,7 +309,7 @@ import { render, RenderOptions } from "@testing-library/react";
 
 function wrappedRender(
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper">,
 ) {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <SearchParamStateProvider>{children}</SearchParamStateProvider>
