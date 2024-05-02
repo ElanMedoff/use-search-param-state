@@ -24,12 +24,12 @@ export function useStableCallback<TCb extends (...args: any[]) => any>(
 }
 
 export function useStableMemo<TMemoVal>(val: TMemoVal): TMemoVal {
-  const cbRef = React.useRef(val);
+  const valRef = React.useRef(val);
   React.useEffect(() => {
-    cbRef.current = val;
+    valRef.current = val;
   }, [val]);
 
-  return React.useMemo(() => cbRef.current, []);
+  return React.useMemo(() => valRef.current, []);
 }
 
 interface UseSearchParamStateOptions<TVal> {
