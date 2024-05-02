@@ -12,7 +12,7 @@
 
 ### Fixed
 
-- Add `useStableCallback` hook to simpilify the ref-based solution introduced in 2.0.11.
+- Add `useStableCallback` and `useStableMemo` hooks to simpilify the ref-based solution introduced in 2.0.11.
 
 ## 2.0.13 - 2024-04-27
 
