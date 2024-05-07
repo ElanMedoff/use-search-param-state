@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 2.0.15 - 2024-05-06
+
+### Fixed
+
+- Fix a bug where `useStableMemo` wasn't using the most up-to-date props.
+
 ## 2.0.14 - 2024-05-01
 
 ### Fixed

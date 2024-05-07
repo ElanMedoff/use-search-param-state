@@ -11,9 +11,7 @@ export function useStableCallback<TCb extends (...args: any[]) => any>(
   cb: TCb,
 ): TCb {
   const cbRef = React.useRef(cb);
-  React.useEffect(() => {
-    cbRef.current = cb;
-  }, [cb]);
+  cbRef.current = cb;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback(
@@ -23,13 +21,10 @@ export function useStableCallback<TCb extends (...args: any[]) => any>(
   );
 }
 
-export function useStableMemo<TMemoVal>(val: TMemoVal): TMemoVal {
+function useStableValue<Val>(val: Val) {
   const valRef = React.useRef(val);
-  React.useEffect(() => {
-    valRef.current = val;
-  }, [val]);
-
-  return React.useMemo(() => valRef.current, []);
+  valRef.current = val;
+  return React.useCallback(() => valRef.current, []);
 }
 
 interface UseSearchParamStateOptions<TVal> {
@@ -176,7 +171,7 @@ function useSearchParamState<TVal>(
 
 function useSearchParamStateInner<TVal>(
   searchParam: string,
-  initialStateArg: TVal,
+  initialState: TVal,
   hookOptions: UseSearchParamStateOptions<TVal>,
 ) {
   const { buildOptions, globalSearchParams, setGlobalSearchParams } =
@@ -222,7 +217,7 @@ function useSearchParamStateInner<TVal>(
   const validate = useStableCallback(validateOption);
   const buildOnError = useStableCallback(buildOnErrorOption);
   const hookOnError = useStableCallback(hookOnErrorOption);
-  const initialState = useStableMemo(initialStateArg);
+  const getInitialState = useStableValue(initialState);
 
   const setState = React.useCallback(
     (newVal: TVal) => {
@@ -327,14 +322,14 @@ function useSearchParamStateInner<TVal>(
     try {
       const href = maybeGetHref();
       if (href === null) {
-        return initialState;
+        return getInitialState();
       }
 
       const url = new URL(href);
       const urlParams = url.searchParams;
       const initialParamState = urlParams.get(searchParam);
       if (initialParamState === null) {
-        return initialState;
+        return getInitialState();
       }
 
       const sanitized = sanitize(initialParamState);
@@ -345,17 +340,17 @@ function useSearchParamStateInner<TVal>(
     } catch (e) {
       hookOnError(e);
       buildOnError(e);
-      return initialState;
+      return getInitialState();
     }
   }, [
     buildOnError,
     hookOnError,
-    initialState,
     maybeGetHref,
     parse,
     sanitize,
     searchParam,
     validate,
+    getInitialState,
   ]);
 
   React.useEffect(() => {
