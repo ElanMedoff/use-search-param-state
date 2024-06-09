@@ -1,6 +1,6 @@
 {
   "name": "use-search-param-state",
-  "version": "2.0.15",
+  "version": "2.0.16",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -41,6 +41,7 @@
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jest": "^28.6.0",
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "husky": "^9.0.11",

@@ -14,8 +14,9 @@ function expectPushStateToHaveBeenCalledWith(href: string) {
 
 describe("useSearchParamState", () => {
   let buildOptions: UseBuildSearchParamStateOptions;
+
   beforeEach(() => {
-    jest.spyOn(window.history, "pushState");
+    window.history.pushState = jest.fn();
     jest.spyOn(helpers, "isWindowUndefined").mockReturnValue(false);
 
     Object.defineProperty(window, "location", {
@@ -111,7 +112,7 @@ describe("useSearchParamState", () => {
           expectPushStateToHaveBeenCalledWith("?counter=10");
         });
 
-        it.only("should not override unrelated search params", () => {
+        it("should not override unrelated search params", () => {
           Object.defineProperty(window, "location", {
             writable: true,
             value: { href: "http://localhost:3000/?asdf=1" },
