@@ -12,7 +12,7 @@
 
 ### Fixed
 
-- Add eslint rule to forbid skipped tests
+- Add eslint rule to forbid skipped tests.
 - Fixed skipped tests (no code itself needed to be fixed).
 
 ## 2.0.15 - 2024-05-06
