@@ -1,7 +1,5 @@
-// @ts-check
-
 /** @type { import("eslint").Linter.Config } */
-const config = {
+module.exports = {
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended-type-checked",
@@ -17,7 +15,7 @@ const config = {
   },
   plugins: ["@typescript-eslint", "jest"],
   ignorePatterns: [
-    "**/.eslintrc.js",
+    "**/.eslintrc.cjs",
     "**/tsup.config.ts",
     "**/jest.config.js",
     "**/.prettierrc.js",
@@ -36,5 +34,3 @@ const config = {
     },
   },
 };
-
-module.exports = config;

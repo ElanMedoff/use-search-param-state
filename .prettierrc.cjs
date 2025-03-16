@@ -1,8 +1,4 @@
-// @ts-check
-
 /** @type { import("prettier").Config } */
-const config = {
+module.exports = {
   trailingComma: "all",
 };
-
-module.exports = config;
