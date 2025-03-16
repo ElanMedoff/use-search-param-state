@@ -26,7 +26,7 @@ interface Options<TVal> {
   parse?: (unparsed: string) => TVal;
 
   /**
-   * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the initial state.
+   * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If an error is thrown, `onError` is called and `useSearchParamState` returns the default state.
    *
    * @param `unvalidated` The result of `parse` is passed as `unvalidated`.
    * @returns The `unvalidated` argument, now validated as of type `TVal`.
@@ -57,15 +57,15 @@ interface Options<TVal> {
   /**
    * A value of type `string` - any valid `string` input to the `URLSearchParams` constructor.
    *
-   * When passed, `serverSideSearchString` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
+   * When passed, `serverSideSearchString` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
    */
   serverSideSearchString?: string;
 
   /**
-   * @param `href` The `href` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
+   * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
    * @returns
    */
-  pushState?: (stringifiedSearchParams: string) => void;
+  pushState?: (url: string | URL | null | undefined) => void;
 
   /**
    * @param `e` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
@@ -74,14 +74,21 @@ interface Options<TVal> {
   onError?: (e: unknown) => void;
 
   /**
-   * A React hook to return the current window.location.search. This is dependent on your router of choice.
+   * A React hook to return the current value of `window.location.search`. The hook to pass will depend on your routing library.
    */
   useSearchString: (...args: unknown[]) => string;
 
   /**
-   * A search string corresponding to window.location.search.
+   * A search string corresponding to the current value of `window.location.search`.
    */
   searchString: string;
+
+  /**
+   * The default state returned by `useSearchParamState` if no valid URL search param is present to read from.
+   *
+   * Note that if `sanitize`, `parse`, or `validate` throw an error, the default state will also be returned.
+   */
+  defaultState?: TVal;
 }
 
 // TODO: consolidate these
@@ -106,6 +113,7 @@ interface UseSearchParamStateOptions<TVal> {
   serverSideSearchString?: Options<TVal>["serverSideSearchString"];
   pushState?: Options<TVal>["pushState"];
   onError?: Options<TVal>["onError"];
+  defaultState?: Options<TVal>["defaultState"];
 }
 
 interface BuildGetSearchParamOptions<TVal> {
@@ -136,18 +144,11 @@ function buildUseSearchParamState(
     searchParam: string,
 
     /**
-     * The initial state returned by `useSearchParamState` if no valid URL search param is present to read from.
-     *
-     * Note that if `sanitize`, `parse`, or `validate` throw an error, the initial state is set in the URL and returned by `useSearchParamState`.
-     */
-    defaultState: TVal,
-
-    /**
      * Options passed by a particular instance of `useSearchParamState`.
      *
      * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
-    hookOptions: UseSearchParamStateOptions<TVal> = {},
+    hookOptions: UseSearchParamStateOptions<TVal>,
   ) {
     const { useSearchString } = buildOptions;
     const searchString = useSearchString();
@@ -173,9 +174,9 @@ function buildUseSearchParamState(
     const validateOption = hookOptions.validate ?? defaultValidate;
     const buildOnErrorOption = buildOptions.onError ?? defaultOnError;
     const hookOnErrorOption = hookOptions.onError ?? defaultOnError;
-    const { serverSideSearchString } = hookOptions;
+    const { serverSideSearchString, defaultState } = hookOptions;
 
-    // necessary to return referentially stable values so the consumer can pass them to dep arrays
+    // return referentially stable values so the consumer can pass them to dep arrays
     const stringify = useStableCallback(stringifyOption);
     const parse = useStableCallback(parseOption);
     const pushState = useStableCallback(pushStateOption);
@@ -184,7 +185,7 @@ function buildUseSearchParamState(
     const validate = useStableCallback(validateOption);
     const buildOnError = useStableCallback(buildOnErrorOption);
     const hookOnError = useStableCallback(hookOnErrorOption);
-    const getDefaultState = useStableValue(defaultState);
+    const getDefaultState = useStableValue(defaultState ?? null);
 
     const searchParamVal =
       React.useMemo(
