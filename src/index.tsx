@@ -5,15 +5,15 @@ import {
   defaultIsEmptySearchParam,
   isWindowUndefined,
 } from "./helpers";
+import { useSyncExternalStore } from "use-sync-external-store/shim";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useStableCallback<TCb extends (...args: any[]) => any>(
   cb: TCb,
 ): TCb {
   const cbRef = React.useRef(cb);
   cbRef.current = cb;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback(((...args) => cbRef.current(...args)) as TCb, []);
 }
 
@@ -68,9 +68,9 @@ interface Options<TVal> {
   /**
    * A value of type `string` - any valid `string` input to the `URLSearchParams` constructor.
    *
-   * When passed, `serverSideSearchParams` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
+   * When passed, `serverSideSearchString` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js.
    */
-  serverSideSearchParams?: string;
+  serverSideSearchString?: string;
 
   /**
    * @param `href` The `href` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
@@ -114,7 +114,7 @@ interface UseSearchParamStateOptions<TVal> {
   stringify?: Options<TVal>["stringify"];
   deleteEmptySearchParam?: Options<TVal>["deleteEmptySearchParam"];
   isEmptySearchParam?: Options<TVal>["isEmptySearchParam"];
-  serverSideSearchParams?: Options<TVal>["serverSideSearchParams"];
+  serverSideSearchString?: Options<TVal>["serverSideSearchString"];
   pushState?: Options<TVal>["pushState"];
   onError?: Options<TVal>["onError"];
 }
@@ -130,16 +130,13 @@ interface GetSearchParamOptions<TVal> {
   parse?: Options<TVal>["parse"];
   validate?: Options<TVal>["validate"];
   stringify?: Options<TVal>["stringify"];
-  serverSideSearchParams?: Options<TVal>["serverSideSearchParams"];
+  serverSideSearchString?: Options<TVal>["serverSideSearchString"];
   onError?: Options<TVal>["onError"];
   searchString: Options<TVal>["searchString"];
 }
 
 function buildUseSearchParamState(
-  buildOptions: BuildUseSearchParamStateOptions<unknown> = {
-    // TODO: make real
-    useSearchString: () => window.location.search,
-  },
+  buildOptions: BuildUseSearchParamStateOptions<unknown>,
 ) {
   return function useSearchParamState<TVal>(
     /**
@@ -194,7 +191,7 @@ function buildUseSearchParamState(
       hookOptions.validate ?? ((unvalidated: unknown) => unvalidated as TVal);
     const buildOnErrorOption = buildOptions.onError ?? (() => {});
     const hookOnErrorOption = hookOptions.onError ?? (() => {});
-    const { serverSideSearchParams } = hookOptions;
+    const { serverSideSearchString } = hookOptions;
 
     // necessary to return referentially stable values so the consumer can pass them to dep arrays
     const stringify = useStableCallback(stringifyOption);
@@ -218,7 +215,7 @@ function buildUseSearchParamState(
             searchParam,
             validate,
             parse,
-            serverSideSearchParams,
+            serverSideSearchString,
           }),
         [
           buildOnError,
@@ -227,7 +224,7 @@ function buildUseSearchParamState(
           sanitize,
           searchParam,
           searchString,
-          serverSideSearchParams,
+          serverSideSearchString,
           validate,
         ],
       ) ?? getDefaultState();
@@ -243,7 +240,7 @@ function buildUseSearchParamState(
 
         try {
           const search = maybeGetSearch({
-            serverSideSearchParams,
+            serverSideSearchString,
             searchString,
           });
           if (search === null) {
@@ -280,7 +277,7 @@ function buildUseSearchParamState(
         searchParam,
         searchParamVal,
         searchString,
-        serverSideSearchParams,
+        serverSideSearchString,
         stringify,
       ],
     );
@@ -290,15 +287,15 @@ function buildUseSearchParamState(
 }
 
 function maybeGetSearch({
-  serverSideSearchParams,
+  serverSideSearchString,
   searchString,
 }: {
-  serverSideSearchParams: Options<unknown>["serverSideSearchParams"];
+  serverSideSearchString: Options<unknown>["serverSideSearchString"];
   searchString: string;
 }) {
   if (isWindowUndefined()) {
-    if (typeof serverSideSearchParams === "string") {
-      return serverSideSearchParams;
+    if (typeof serverSideSearchString === "string") {
+      return serverSideSearchString;
     }
     return null;
   }
@@ -334,10 +331,10 @@ function buildGetSearchParam(
       ((unsanitized: string) => unsanitized);
     const validate =
       localOptions.validate ?? ((unvalidated: unknown) => unvalidated as TVal);
-    const { serverSideSearchParams, searchString } = localOptions;
+    const { serverSideSearchString, searchString } = localOptions;
 
     return _getSearchParamVal({
-      serverSideSearchParams,
+      serverSideSearchString,
       searchString,
       sanitize,
       parse,
@@ -352,7 +349,7 @@ function buildGetSearchParam(
 function _getSearchParamVal<TVal>({
   searchString,
   searchParam,
-  serverSideSearchParams,
+  serverSideSearchString,
   sanitize,
   parse,
   validate,
@@ -361,7 +358,7 @@ function _getSearchParamVal<TVal>({
 }: {
   searchParam: string;
   searchString: Options<TVal>["searchString"];
-  serverSideSearchParams: Options<TVal>["serverSideSearchParams"];
+  serverSideSearchString: Options<TVal>["serverSideSearchString"];
   sanitize: Required<Options<TVal>>["sanitize"];
   parse: Required<Options<TVal>>["parse"];
   validate: Required<Options<TVal>>["validate"];
@@ -371,8 +368,8 @@ function _getSearchParamVal<TVal>({
   try {
     const getSearch = () => {
       if (isWindowUndefined()) {
-        if (typeof serverSideSearchParams === "string") {
-          return serverSideSearchParams;
+        if (typeof serverSideSearchString === "string") {
+          return serverSideSearchString;
         }
         return null;
       }
@@ -402,6 +399,47 @@ function _getSearchParamVal<TVal>({
   }
 }
 
+function useSearchString() {
+  const customEventNames = ["pushState", "replaceState"] as const;
+  const eventNames = ["popstate", ...customEventNames] as const;
+
+  // from Wouter: https://github.com/molefrog/wouter/blob/110b6694a9b3220460eed32640fa4778d10bdf52/packages/wouter/src/use-browser-location.js#L57
+  const patchKey = Symbol.for("use-search-param-state");
+  if (
+    typeof history !== "undefined" &&
+    // @ts-expect-error type issues indexing with a symbol
+    typeof window[patchKey] === "undefined"
+  ) {
+    for (const eventName of customEventNames) {
+      const original = history[eventName];
+      history[eventName] = function (...args) {
+        dispatchEvent(new Event(eventName));
+        return original.apply(this, args);
+      };
+    }
+    Object.defineProperty(window, patchKey, { value: true });
+  }
+
+  const subscribeToEventUpdates = (callback: (event: Event) => void) => {
+    for (const eventName of eventNames) {
+      window.addEventListener(eventName, callback);
+    }
+    return () => {
+      for (const eventName of eventNames) {
+        window.removeEventListener(eventName, callback);
+      }
+    };
+  };
+
+  const getSnapshot = () => window.location.search;
+
+  return useSyncExternalStore(
+    subscribeToEventUpdates,
+    getSnapshot,
+    getSnapshot,
+  );
+}
+
 const getSearchParam = buildGetSearchParam();
 const useSearchParamState = buildUseSearchParamState();
 
@@ -410,5 +448,6 @@ export {
   useSearchParamState,
   buildGetSearchParam,
   getSearchParam,
+  useSearchString,
 };
 export type { UseSearchParamStateOptions, BuildUseSearchParamStateOptions };
