@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 
-function useSearchString() {
+function useURL() {
   const customEventNames = ["pushState", "replaceState"] as const;
   const eventNames = ["popstate", ...customEventNames] as const;
 
@@ -32,13 +32,15 @@ function useSearchString() {
     };
   };
 
-  const getSnapshot = () => window.location.search;
+  const getSnapshot = () => window.location;
 
-  return useSyncExternalStore(
+  const currLocation = useSyncExternalStore(
     subscribeToEventUpdates,
     getSnapshot,
     getSnapshot,
   );
+
+  return new URL(currLocation.toString());
 }
 
-export { useSearchString };
+export { useURL };

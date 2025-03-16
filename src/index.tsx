@@ -55,13 +55,6 @@ interface Options<TVal> {
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
 
   /**
-   * A value of type `string` - any valid `string` input to the `URLSearchParams` constructor.
-   *
-   * When passed, `serverSideSearchString` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
-   */
-  serverSideSearchString?: string;
-
-  /**
    * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
    * @returns
    */
@@ -74,14 +67,27 @@ interface Options<TVal> {
   onError?: (e: unknown) => void;
 
   /**
-   * A React hook to return the current value of `window.location.search`. The hook to pass will depend on your routing library.
+   * A React hook to return the current URL. This hook is expected to re-render when the URL changes. The hook to pass will depend on your routing library.
+   *
+   * See MDN's documentation on [Location](https://developer.mozilla.org/en-US/docs/Web/API/Location) for more info.
    */
-  useSearchString: (...args: unknown[]) => string;
+  useURL: (...args: unknown[]) => URL;
 
   /**
-   * A search string corresponding to the current value of `window.location.search`.
+   * The current URL object.
+   *
+   * See MDN's documentation on [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) for more info.
    */
-  searchString: string;
+  url: URL;
+
+  /**
+   * A value of type `string` - any valid `string` input to the `URLSearchParams` constructor.
+   *
+   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
+   *
+   * See MDN's documentation on [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) for more info.
+   */
+  serverSideURL?: URL;
 
   /**
    * The default state returned by `useSearchParamState` if no valid URL search param is present to read from.
@@ -102,7 +108,7 @@ interface ReadBuildOptions<TVal> {
 
 type ReadLocalOptions<TVal> = ReadBuildOptions<TVal> & {
   validate?: Options<TVal>["validate"];
-  serverSideSearchString?: Options<TVal>["serverSideSearchString"];
+  serverSideURL?: Options<TVal>["serverSideURL"];
 };
 
 interface WriteOptions<TVal> {
@@ -115,7 +121,7 @@ interface WriteOptions<TVal> {
 type BuildUseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
   ReadBuildOptions<TVal> &
   WriteOptions<TVal> & {
-    useSearchString: Options<TVal>["useSearchString"];
+    useURL: Options<TVal>["useURL"];
   };
 
 type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
@@ -128,7 +134,7 @@ type BuildGetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadBuildOptions<TVal>;
 type GetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadLocalOptions<TVal> & {
-    searchString: Options<TVal>["searchString"];
+    url: Options<TVal>["url"];
     defaultState?: Options<TVal>["defaultState"];
   };
 
@@ -148,10 +154,10 @@ function buildUseSearchParamState(
      *
      * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
-    hookOptions: UseSearchParamStateOptions<TVal>,
+    hookOptions: UseSearchParamStateOptions<TVal> = {},
   ) {
-    const { useSearchString } = buildOptions;
-    const searchString = useSearchString();
+    const { useURL } = buildOptions;
+    const url = useURL();
 
     const stringifyOption =
       hookOptions.stringify ?? buildOptions.stringify ?? defaultStringify;
@@ -174,7 +180,7 @@ function buildUseSearchParamState(
     const validateOption = hookOptions.validate ?? defaultValidate;
     const buildOnErrorOption = buildOptions.onError ?? defaultOnError;
     const hookOnErrorOption = hookOptions.onError ?? defaultOnError;
-    const { serverSideSearchString, defaultState } = hookOptions;
+    const { serverSideURL, defaultState } = hookOptions;
 
     // return referentially stable values so the consumer can pass them to dep arrays
     const stringify = useStableCallback(stringifyOption);
@@ -191,14 +197,14 @@ function buildUseSearchParamState(
       React.useMemo(
         () =>
           _getSearchParamVal<TVal>({
-            searchString,
+            url,
             sanitize,
             localOnError: hookOnError,
             buildOnError,
             searchParam,
             validate,
             parse,
-            serverSideSearchString,
+            serverSideURL,
           }),
         [
           buildOnError,
@@ -206,8 +212,8 @@ function buildUseSearchParamState(
           parse,
           sanitize,
           searchParam,
-          searchString,
-          serverSideSearchString,
+          serverSideURL,
+          url,
           validate,
         ],
       ) ?? getDefaultState();
@@ -222,30 +228,26 @@ function buildUseSearchParamState(
         }
 
         try {
-          const search = maybeGetSearch({
-            serverSideSearchString,
-            searchString,
+          const maybeURL = maybeGetURL({
+            serverSideURL,
+            url,
           });
-          if (search === null) {
-            throw new Error();
+
+          if (maybeURL === null) {
+            throw new Error(
+              "Invalid URL! This can occur if `useSearchParamState` is running on the server and the `serverSideURL` option isn't passed.",
+            );
           }
 
-          const searchParamsObj = new URLSearchParams(search);
-
           if (deleteEmptySearchParam && isEmptySearchParam(valToSet)) {
-            searchParamsObj.delete(searchParam);
-            if (searchParamsObj.toString().length > 0) {
-              // URLSearchParams.toString() does not include a `?`
-              pushState(`?${searchParamsObj.toString()}`);
-            }
+            url.searchParams.delete(searchParam);
+            pushState(url);
+            return;
           }
 
           const stringified = stringify(valToSet);
-          searchParamsObj.set(searchParam, stringified);
-          if (searchParamsObj.toString().length > 0) {
-            // URLSearchParams.toString() does not include a `?`
-            pushState(`?${searchParamsObj.toString()}`);
-          }
+          url.searchParams.set(searchParam, stringified);
+          pushState(url);
         } catch (e) {
           hookOnError(e);
           buildOnError(e);
@@ -259,9 +261,9 @@ function buildUseSearchParamState(
         pushState,
         searchParam,
         searchParamVal,
-        searchString,
-        serverSideSearchString,
+        serverSideURL,
         stringify,
+        url,
       ],
     );
 
@@ -269,20 +271,20 @@ function buildUseSearchParamState(
   };
 }
 
-function maybeGetSearch({
-  serverSideSearchString,
-  searchString,
+function maybeGetURL({
+  serverSideURL,
+  url,
 }: {
-  serverSideSearchString: Options<unknown>["serverSideSearchString"];
-  searchString: string;
+  serverSideURL: Options<unknown>["serverSideURL"];
+  url: Options<unknown>["url"];
 }) {
   if (isWindowUndefined()) {
-    if (typeof serverSideSearchString === "string") {
-      return serverSideSearchString;
+    if (typeof serverSideURL === "string") {
+      return serverSideURL;
     }
     return null;
   }
-  return searchString;
+  return url;
 }
 
 function buildGetSearchParam(
@@ -301,7 +303,7 @@ function buildGetSearchParam(
      * When an option is passed to both `getSearchParam` and `buildGetSearchParam`, only the option passed to `getSearchParam` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
     localOptions: GetSearchParamOptions<TVal> = {
-      searchString: window.location.search,
+      url: new URL(window.location.toString()),
     },
   ) {
     const parse =
@@ -316,11 +318,11 @@ function buildGetSearchParam(
       localOptions.validate ?? ((unvalidated: unknown) => unvalidated as TVal);
     const buildOnError = buildOptions.onError ?? defaultOnError;
     const localOnError = localOptions.onError ?? defaultOnError;
-    const { serverSideSearchString, searchString } = localOptions;
+    const { serverSideURL, url } = localOptions;
 
     return _getSearchParamVal({
-      serverSideSearchString,
-      searchString,
+      serverSideURL,
+      url,
       sanitize,
       parse,
       validate,
@@ -332,9 +334,9 @@ function buildGetSearchParam(
 }
 
 function _getSearchParamVal<TVal>({
-  searchString,
+  url,
   searchParam,
-  serverSideSearchString,
+  serverSideURL,
   sanitize,
   parse,
   validate,
@@ -342,33 +344,22 @@ function _getSearchParamVal<TVal>({
   localOnError,
 }: {
   searchParam: string;
-  searchString: Options<TVal>["searchString"];
-  serverSideSearchString: Options<TVal>["serverSideSearchString"];
+  url: Options<TVal>["url"];
+  serverSideURL: Options<TVal>["serverSideURL"];
   sanitize: Required<Options<TVal>>["sanitize"];
   parse: Required<Options<TVal>>["parse"];
   validate: Required<Options<TVal>>["validate"];
   buildOnError: Required<Options<TVal>>["onError"];
   localOnError: Required<Options<TVal>>["onError"];
 }) {
-  const getSearchString = () => {
-    if (isWindowUndefined()) {
-      if (typeof serverSideSearchString === "string") {
-        return serverSideSearchString;
-      }
-      return null;
-    }
-    return searchString;
-  };
-
   try {
-    const maybeSearch = getSearchString();
+    const maybeURL = maybeGetURL({ serverSideURL, url });
 
-    if (maybeSearch === null) {
+    if (maybeURL === null) {
       return null;
     }
 
-    const urlParams = new URLSearchParams(maybeSearch);
-    const rawSearchParamVal = urlParams.get(searchParam);
+    const rawSearchParamVal = url.searchParams.get(searchParam);
     if (rawSearchParamVal === null) {
       return null;
     }
