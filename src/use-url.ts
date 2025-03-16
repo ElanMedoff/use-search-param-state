@@ -32,15 +32,15 @@ function useURL() {
     };
   };
 
-  const getSnapshot = () => window.location;
+  const getSnapshot = () => window.location.href;
 
-  const currLocation = useSyncExternalStore(
+  const href = useSyncExternalStore(
     subscribeToEventUpdates,
     getSnapshot,
     getSnapshot,
   );
 
-  return new URL(currLocation.toString());
+  return new URL(href);
 }
 
 export { useURL };

@@ -58,7 +58,7 @@ interface Options<TVal> {
    * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
    * @returns
    */
-  pushState?: (url: string | URL | null | undefined) => void;
+  pushState?: (url: URL) => void;
 
   /**
    * @param `e` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
@@ -219,10 +219,10 @@ function buildUseSearchParamState(
       ) ?? getDefaultState();
 
     const setSearchParam = React.useCallback(
-      (val: TVal | ((currVal: TVal | null) => TVal)) => {
+      (val: TVal | ((currVal: TVal) => TVal)) => {
         let valToSet: TVal;
         if (val instanceof Function) {
-          valToSet = val(searchParamVal);
+          valToSet = val(searchParamVal as TVal);
         } else {
           valToSet = val;
         }
@@ -279,7 +279,7 @@ function maybeGetURL({
   url: Options<unknown>["url"];
 }) {
   if (isWindowUndefined()) {
-    if (typeof serverSideURL === "string") {
+    if (serverSideURL instanceof URL) {
       return serverSideURL;
     }
     return null;
@@ -359,7 +359,7 @@ function _getSearchParamVal<TVal>({
       return null;
     }
 
-    const rawSearchParamVal = url.searchParams.get(searchParam);
+    const rawSearchParamVal = maybeURL.searchParams.get(searchParam);
     if (rawSearchParamVal === null) {
       return null;
     }

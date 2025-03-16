@@ -46,7 +46,7 @@ export function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
   );
 }
 
-export function defaultPushState(url: string | URL | null | undefined) {
+export function defaultPushState(url: URL) {
   window.history.pushState({}, "", url);
 }
 
