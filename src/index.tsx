@@ -91,46 +91,46 @@ interface Options<TVal> {
   defaultState?: TVal;
 }
 
-// TODO: consolidate these
-interface BuildUseSearchParamStateOptions<TVal> {
+interface CommonOptions<TVal> {
+  onError?: Options<TVal>["onError"];
+}
+
+interface ReadBuildOptions<TVal> {
   sanitize?: Options<TVal>["sanitize"];
   parse?: Options<TVal>["parse"];
-  stringify?: Options<TVal>["stringify"];
+}
+
+type ReadLocalOptions<TVal> = ReadBuildOptions<TVal> & {
+  validate?: Options<TVal>["validate"];
+  serverSideSearchString?: Options<TVal>["serverSideSearchString"];
+};
+
+interface WriteOptions<TVal> {
   deleteEmptySearchParam?: Options<TVal>["deleteEmptySearchParam"];
   isEmptySearchParam?: Options<TVal>["isEmptySearchParam"];
   pushState?: Options<TVal>["pushState"];
-  onError?: Options<TVal>["onError"];
-  useSearchString: Options<TVal>["useSearchString"];
+  stringify?: Options<TVal>["stringify"];
 }
 
-interface UseSearchParamStateOptions<TVal> {
-  sanitize?: Options<TVal>["sanitize"];
-  parse?: Options<TVal>["parse"];
-  validate?: Options<TVal>["validate"];
-  stringify?: Options<TVal>["stringify"];
-  deleteEmptySearchParam?: Options<TVal>["deleteEmptySearchParam"];
-  isEmptySearchParam?: Options<TVal>["isEmptySearchParam"];
-  serverSideSearchString?: Options<TVal>["serverSideSearchString"];
-  pushState?: Options<TVal>["pushState"];
-  onError?: Options<TVal>["onError"];
-  defaultState?: Options<TVal>["defaultState"];
-}
+type BuildUseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
+  ReadBuildOptions<TVal> &
+  WriteOptions<TVal> & {
+    useSearchString: Options<TVal>["useSearchString"];
+  };
 
-interface BuildGetSearchParamOptions<TVal> {
-  sanitize?: Options<TVal>["sanitize"];
-  parse?: Options<TVal>["parse"];
-  stringify?: Options<TVal>["stringify"];
-  onError?: Options<TVal>["onError"];
-}
-interface GetSearchParamOptions<TVal> {
-  sanitize?: Options<TVal>["sanitize"];
-  parse?: Options<TVal>["parse"];
-  validate?: Options<TVal>["validate"];
-  stringify?: Options<TVal>["stringify"];
-  serverSideSearchString?: Options<TVal>["serverSideSearchString"];
-  onError?: Options<TVal>["onError"];
-  searchString: Options<TVal>["searchString"];
-}
+type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
+  ReadLocalOptions<TVal> &
+  WriteOptions<TVal> & {
+    defaultState?: Options<TVal>["defaultState"];
+  };
+
+type BuildGetSearchParamOptions<TVal> = CommonOptions<TVal> &
+  ReadBuildOptions<TVal>;
+type GetSearchParamOptions<TVal> = CommonOptions<TVal> &
+  ReadLocalOptions<TVal> & {
+    searchString: Options<TVal>["searchString"];
+    defaultState?: Options<TVal>["defaultState"];
+  };
 
 function buildUseSearchParamState(
   buildOptions: BuildUseSearchParamStateOptions<unknown>,
@@ -213,7 +213,7 @@ function buildUseSearchParamState(
       ) ?? getDefaultState();
 
     const setSearchParam = React.useCallback(
-      (val: TVal | ((currVal: TVal) => TVal)) => {
+      (val: TVal | ((currVal: TVal | null) => TVal)) => {
         let valToSet: TVal;
         if (val instanceof Function) {
           valToSet = val(searchParamVal);
