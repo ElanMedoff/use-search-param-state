@@ -387,4 +387,9 @@ function _getSearchParamVal<TVal>({
 const getSearchParam = buildGetSearchParam();
 
 export { buildUseSearchParamState, buildGetSearchParam, getSearchParam };
-export type { UseSearchParamStateOptions, BuildUseSearchParamStateOptions };
+export type {
+  UseSearchParamStateOptions,
+  BuildUseSearchParamStateOptions,
+  GetSearchParamOptions,
+  BuildGetSearchParamOptions,
+};
