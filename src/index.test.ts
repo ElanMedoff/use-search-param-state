@@ -40,42 +40,32 @@ describe("useSearchParamState", () => {
       it("with a serverSideURL, it should dehydrate the search param", () => {
         const useSearchParamState = buildUseSearchParamState(buildOptions);
         const { result } = renderHook(() =>
-          useSearchParamState("counter", {
+          useSearchParamState("counter", 0, {
             serverSideURL: new URL("https://elanmed.dev/?counter=1"),
           }),
         );
         expect(result.current[0]).toBe(1);
       });
 
-      describe("without a serverSideURL", () => {
-        it("with an defaultState, it should return the option", () => {
-          const useSearchParamState = buildUseSearchParamState(buildOptions);
-          const { result } = renderHook(() =>
-            useSearchParamState("counter", { defaultState: 0 }),
-          );
-          expect(result.current[0]).toBe(0);
-        });
-
-        it("without an defaultState, it should return null", () => {
-          const useSearchParamState = buildUseSearchParamState(buildOptions);
-          const { result } = renderHook(() => useSearchParamState("counter"));
-          expect(result.current[0]).toBe(null);
-        });
+      it("without a serverSideURL, it should return the initial state", () => {
+        const useSearchParamState = buildUseSearchParamState(buildOptions);
+        const { result } = renderHook(() => useSearchParamState("counter", 0));
+        expect(result.current[0]).toBe(0);
       });
     });
 
     it.each([["sanitize"], ["parse"], ["validate"]])(
-      "when %s errors, it should return null",
+      "when %s errors, it should return the initial state",
       (fnName) => {
         const useSearchParamState = buildUseSearchParamState(buildOptions);
         const { result } = renderHook(() =>
-          useSearchParamState("counter", {
+          useSearchParamState("counter", 0, {
             [fnName]: () => {
               throw new Error();
             },
           }),
         );
-        expect(result.current[0]).toBe(null);
+        expect(result.current[0]).toBe(0);
         expect(helpers.defaultPushState).not.toHaveBeenCalled();
       },
     );
@@ -86,7 +76,7 @@ describe("useSearchParamState", () => {
       };
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() => useSearchParamState("counter"));
+      const { result } = renderHook(() => useSearchParamState("counter", 0));
       expect(result.current[0]).toBe(1);
     });
   });
@@ -95,8 +85,7 @@ describe("useSearchParamState", () => {
     describe("when setting the url succeeds", () => {
       it("should set the state", () => {
         const useSearchParamState = buildUseSearchParamState(buildOptions);
-        const { result } = renderHook(() => useSearchParamState("counter"));
-        expect(result.current[0]).toBe(null);
+        const { result } = renderHook(() => useSearchParamState("counter", 0));
         act(() => {
           result.current[1](10);
         });
@@ -107,8 +96,7 @@ describe("useSearchParamState", () => {
       it("should not override unrelated search params", () => {
         buildOptions = { useURL: () => new URL("https://elanmed.dev/?asdf=1") };
         const useSearchParamState = buildUseSearchParamState(buildOptions);
-        const { result } = renderHook(() => useSearchParamState("counter"));
-        expect(result.current[0]).toBe(null);
+        const { result } = renderHook(() => useSearchParamState("counter", 0));
         act(() => {
           result.current[1](10);
         });
@@ -123,13 +111,12 @@ describe("useSearchParamState", () => {
       it("should not set the state", () => {
         const useSearchParamState = buildUseSearchParamState(buildOptions);
         const { result } = renderHook(() =>
-          useSearchParamState("counter", {
+          useSearchParamState("counter", 0, {
             pushState: () => {
               throw new Error();
             },
           }),
         );
-        expect(result.current[0]).toBe(null);
         act(() => {
           result.current[1](10);
         });
@@ -139,11 +126,7 @@ describe("useSearchParamState", () => {
 
     it("should accept a setter function", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          defaultState: 0,
-        }),
-      );
+      const { result } = renderHook(() => useSearchParamState("counter", 0));
       expect(result.current[0]).toBe(0);
       act(() => {
         result.current[1]((prev) => prev + 1);
@@ -161,7 +144,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState<string[]>("name", {
+        useSearchParamState<string[]>("name", [], {
           stringify: (valToStringify) => valToStringify.join("_"),
         }),
       );
@@ -185,7 +168,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", "foo", {
           sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
         }),
       );
@@ -202,7 +185,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", [], {
           parse: (unparsed) => unparsed.split("_"),
         }),
       );
@@ -217,11 +200,11 @@ describe("useSearchParamState", () => {
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           validate: z.number().parse,
         }),
       );
-      expect(result.current[0]).toBe(null);
+      expect(result.current[0]).toBe(0);
     });
 
     it("when a deleteEmptySearchParam option is passed, it should use it", () => {
@@ -231,7 +214,7 @@ describe("useSearchParamState", () => {
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", "foo", {
           deleteEmptySearchParam: true,
         }),
       );
@@ -250,7 +233,7 @@ describe("useSearchParamState", () => {
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", "foo", {
           deleteEmptySearchParam: true,
           isEmptySearchParam: (searchParamVal) => searchParamVal === null,
         }),
@@ -271,7 +254,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           pushState,
         }),
       );
@@ -289,7 +272,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           onError,
           validate: z.number().parse,
         }),
@@ -306,7 +289,9 @@ describe("useSearchParamState", () => {
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
-      const { result } = renderHook(() => useSearchParamState("name"));
+      const { result } = renderHook(() =>
+        useSearchParamState<string[]>("name", []),
+      );
       act(() => {
         result.current[1](["a", "b", "c"]);
       });
@@ -327,7 +312,7 @@ describe("useSearchParamState", () => {
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
-      const { result } = renderHook(() => useSearchParamState("name"));
+      const { result } = renderHook(() => useSearchParamState("name", "foo"));
       expect(result.current[0]).toBe("alert('hello, world')");
       expect(result.current[0]).not.toBe(
         "<script>alert('hello, world')</script>",
@@ -341,7 +326,7 @@ describe("useSearchParamState", () => {
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
-      const { result } = renderHook(() => useSearchParamState("name"));
+      const { result } = renderHook(() => useSearchParamState("name", "foo"));
       expect(result.current[0]).toStrictEqual(["a", "b", "c"]);
       expect(result.current[0]).not.toBe("a_b_c");
     });
@@ -353,7 +338,7 @@ describe("useSearchParamState", () => {
       };
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() => useSearchParamState("name"));
+      const { result } = renderHook(() => useSearchParamState("name", "foo"));
       act(() => {
         result.current[1]("");
       });
@@ -370,7 +355,7 @@ describe("useSearchParamState", () => {
       };
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() => useSearchParamState("name"));
+      const { result } = renderHook(() => useSearchParamState("name", "foo"));
       act(() => {
         result.current[1]("");
       });
@@ -387,7 +372,7 @@ describe("useSearchParamState", () => {
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
-      const { result } = renderHook(() => useSearchParamState("counter"));
+      const { result } = renderHook(() => useSearchParamState("counter", 0));
       act(() => {
         result.current[1](1);
       });
@@ -403,7 +388,7 @@ describe("useSearchParamState", () => {
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           validate: z.number().parse,
         }),
       );
@@ -420,8 +405,8 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
-          stringify: (valToStringify) => (valToStringify as string[]).join("_"),
+        useSearchParamState<string[]>("name", [], {
+          stringify: (valToStringify) => valToStringify.join("_"),
         }),
       );
       act(() => {
@@ -445,7 +430,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", "foo", {
           sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
         }),
       );
@@ -461,7 +446,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", [], {
           parse: (unparsed) => unparsed.split("_"),
         }),
       );
@@ -477,7 +462,7 @@ describe("useSearchParamState", () => {
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", "foo", {
           deleteEmptySearchParam: false,
         }),
       );
@@ -498,7 +483,7 @@ describe("useSearchParamState", () => {
 
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() =>
-        useSearchParamState("name", {
+        useSearchParamState("name", "foo", {
           isEmptySearchParam: (searchParamVal) => searchParamVal === "",
         }),
       );
@@ -520,7 +505,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           pushState: hookPushState,
         }),
       );
@@ -541,7 +526,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           validate: z.number().parse,
           onError: hookOnError,
         }),
@@ -559,7 +544,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           isEmptySearchParam: (val) => val === 200,
         }),
       );
@@ -582,7 +567,7 @@ describe("useSearchParamState", () => {
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
+        useSearchParamState("counter", 0, {
           deleteEmptySearchParam: true,
         }),
       );

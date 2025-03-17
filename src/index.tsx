@@ -21,7 +21,7 @@ interface Options<TVal> {
 
   /**
    * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
-   * @returns A parsed value of the type `TVal` i.e. the type of `defaultState`.
+   * @returns A parsed value of the type `TVal` i.e. the type of `initialState`.
    */
   parse?: (unparsed: string) => TVal;
 
@@ -67,30 +67,23 @@ interface Options<TVal> {
   /**
    * A React hook to return the current URL. This hook is expected to re-render when the URL changes. The hook to pass will depend on your routing library.
    *
-   * See MDN's documentation on [Location](https://developer.mozilla.org/en-US/docs/Web/API/Location) for more info.
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) objecet for more info.
    */
   useURL: (...args: unknown[]) => URL;
 
   /**
    * The current URL object.
    *
-   * See MDN's documentation on [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) for more info.
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
    */
   url: URL;
 
   /**
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
    *
-   * See MDN's documentation on [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) for more info.
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
    */
   serverSideURL?: URL;
-
-  /**
-   * The default state returned by `useSearchParamState` if no valid URL search param is present to read from.
-   *
-   * Note that if `sanitize`, `parse`, or `validate` throw an error, the default state will also be returned.
-   */
-  defaultState?: TVal;
 }
 
 interface CommonOptions<TVal> {
@@ -122,16 +115,12 @@ type BuildUseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
 
 type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
   ReadLocalOptions<TVal> &
-  WriteOptions<TVal> & {
-    defaultState?: Options<TVal>["defaultState"];
-  };
-
+  WriteOptions<TVal>;
 type BuildGetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadBuildOptions<TVal>;
 type GetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadLocalOptions<TVal> & {
     url: Options<TVal>["url"];
-    defaultState?: Options<TVal>["defaultState"];
   };
 
 function buildUseSearchParamState(
@@ -144,6 +133,13 @@ function buildUseSearchParamState(
      * See MDN's documentation on [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) for more info.
      */
     searchParam: string,
+
+    /**
+     * The default state returned by `useSearchParamState` if no valid URL search param is present to read from.
+     *
+     * Note that if `sanitize`, `parse`, or `validate` throw an error, the default state will also be returned.
+     */
+    initialState: TVal,
 
     /**
      * Options passed by a particular instance of `useSearchParamState`.
@@ -176,7 +172,7 @@ function buildUseSearchParamState(
     const validateOption = hookOptions.validate ?? defaultValidate;
     const buildOnErrorOption = buildOptions.onError ?? defaultOnError;
     const hookOnErrorOption = hookOptions.onError ?? defaultOnError;
-    const { serverSideURL, defaultState } = hookOptions;
+    const { serverSideURL } = hookOptions;
 
     // We need to return referentially stable values from `useSearchParamState` so the consumer can pass them to dep arrays.
     // This requires wrapping `searchParamVal` in a `useMemo` (since the value may not be a primitive),
@@ -194,7 +190,7 @@ function buildUseSearchParamState(
     const validate = useStableCallback(validateOption);
     const buildOnError = useStableCallback(buildOnErrorOption);
     const hookOnError = useStableCallback(hookOnErrorOption);
-    const getDefaultState = useStableValue(defaultState ?? null);
+    const getInitialState = useStableValue(initialState);
 
     const searchParamVal =
       React.useMemo(
@@ -219,7 +215,7 @@ function buildUseSearchParamState(
           url,
           validate,
         ],
-      ) ?? getDefaultState();
+      ) ?? getInitialState();
 
     const setSearchParam = React.useCallback(
       (val: TVal | ((currVal: TVal) => TVal)) => {
@@ -306,7 +302,7 @@ function buildGetSearchParam(
      * When an option is passed to both `getSearchParam` and `buildGetSearchParam`, only the option passed to `getSearchParam` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
     localOptions: GetSearchParamOptions<TVal> = {
-      url: new URL(window.location.toString()),
+      url: new URL(window.location.href),
     },
   ) {
     const parse =
