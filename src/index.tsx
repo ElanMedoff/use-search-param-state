@@ -40,8 +40,6 @@ interface Options<TVal> {
   stringify?: (valToStringify: TVal) => string;
 
   /**
-   * A `boolean`.
-   *
    * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    */
   deleteEmptySearchParam?: boolean;
@@ -61,10 +59,10 @@ interface Options<TVal> {
   pushState?: (url: URL) => void;
 
   /**
-   * @param `e` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
+   * @param `error` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
    * @returns
    */
-  onError?: (e: unknown) => void;
+  onError?: (error: unknown) => void;
 
   /**
    * A React hook to return the current URL. This hook is expected to re-render when the URL changes. The hook to pass will depend on your routing library.
@@ -81,8 +79,6 @@ interface Options<TVal> {
   url: URL;
 
   /**
-   * A value of type `string` - any valid `string` input to the `URLSearchParams` constructor.
-   *
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
    *
    * See MDN's documentation on [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) for more info.
@@ -152,7 +148,7 @@ function buildUseSearchParamState(
     /**
      * Options passed by a particular instance of `useSearchParamState`.
      *
-     * When an option is passed to both `useSearchParamState` and `SearchParamStateProvider`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
+     * When an option is passed to both `useSearchParamState` and `buildUseSearchParamState`, only the option passed to `useSearchParamState` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
     hookOptions: UseSearchParamStateOptions<TVal> = {},
   ) {
@@ -182,7 +178,14 @@ function buildUseSearchParamState(
     const hookOnErrorOption = hookOptions.onError ?? defaultOnError;
     const { serverSideURL, defaultState } = hookOptions;
 
-    // return referentially stable values so the consumer can pass them to dep arrays
+    // We need to return referentially stable values from `useSearchParamState` so the consumer can pass them to dep arrays.
+    // This requires wrapping `searchParamVal` in a `useMemo` (since the value may not be a primitive),
+    // and `setSearchParam` in a `useCallback`. In order to add everything to the two dependency arrays,
+    // I wrap all non-primitives in `useStableCallback` or `useStableMemo`. Since `useStableCallback`
+    // and `useStableMemo` return referentially stable values, they'll never cause the `useMemo` or `useCallback`
+    // to re-calculate - which makes this approach effectively the same as omitting them from the dep arrays.
+    // The difference is that once you omit one value from a dep array, it's easy to continue ignoring the lint rule and
+    // omit others as well. See https://github.com/ElanMedoff/use-stable-reference for more info
     const stringify = useStableCallback(stringifyOption);
     const parse = useStableCallback(parseOption);
     const pushState = useStableCallback(pushStateOption);
@@ -248,9 +251,9 @@ function buildUseSearchParamState(
           const stringified = stringify(valToSet);
           url.searchParams.set(searchParam, stringified);
           pushState(url);
-        } catch (e) {
-          hookOnError(e);
-          buildOnError(e);
+        } catch (error) {
+          hookOnError(error);
+          buildOnError(error);
         }
       },
       [
@@ -369,9 +372,9 @@ function _getSearchParamVal<TVal>({
     const validated = validate(parsed);
 
     return validated;
-  } catch (e) {
-    buildOnError(e);
-    localOnError(e);
+  } catch (error) {
+    buildOnError(error);
+    localOnError(error);
     return null;
   }
 }
