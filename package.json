@@ -6,6 +6,11 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./use-url": {
+      "import": "./dist/use-url.mjs",
+      "require": "./dist/use-url.js",
+      "types": "./dist/use-url.d.ts"
     }
   },
   "module": "./dist/index.mjs",
