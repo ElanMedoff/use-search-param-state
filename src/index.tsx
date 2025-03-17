@@ -221,7 +221,7 @@ function buildUseSearchParamState(
       (val: TVal | ((currVal: TVal) => TVal)) => {
         let valToSet: TVal;
         if (val instanceof Function) {
-          valToSet = val(searchParamVal as TVal);
+          valToSet = val(searchParamVal);
         } else {
           valToSet = val;
         }
