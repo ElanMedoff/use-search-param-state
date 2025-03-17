@@ -84,6 +84,7 @@ describe("useSearchParamState", () => {
       buildOptions = {
         useURL: () => new URL("https://elanmed.dev/?counter=1"),
       };
+
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() => useSearchParamState("counter"));
       expect(result.current[0]).toBe(1);
@@ -132,24 +133,7 @@ describe("useSearchParamState", () => {
         act(() => {
           result.current[1](10);
         });
-        expect(helpers.defaultPushState).not.toHaveBeenCalled();
-      });
-
-      it("when deleteEmptySearchParam is true and the new state is empty, it should delete the search param", () => {
-        const useSearchParamState = buildUseSearchParamState(buildOptions);
-        const { result } = renderHook(() =>
-          useSearchParamState("counter", {
-            defaultState: 0,
-            deleteEmptySearchParam: true,
-            isEmptySearchParam: (val) => val === 10,
-          }),
-        );
-        expect(result.current[0]).toBe(0);
-        act(() => {
-          result.current[1](10);
-        });
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-        expect(getPushStateURLString()).toBe("https://elanmed.dev/");
+        expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
       });
     });
 
@@ -170,59 +154,122 @@ describe("useSearchParamState", () => {
   });
 
   describe("hook options", () => {
-    beforeEach(() => {
-      buildOptions = {
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
-      };
-    });
-
     it("when a stringify option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/"),
+      };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          stringify: () => "10",
+        useSearchParamState<string[]>("name", {
+          stringify: (valToStringify) => valToStringify.join("_"),
         }),
       );
       act(() => {
-        result.current[1](1);
+        result.current[1](["a", "b", "c"]);
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?counter=10");
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=a_b_c");
+      expect(getPushStateURLString()).not.toBe(
+        `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
+      );
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a sanitize option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () =>
+          new URL(
+            "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+          ),
+      };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          sanitize: (unsanitized) => `${unsanitized}2`,
+        useSearchParamState("name", {
+          sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
         }),
       );
-      expect(result.current[0]).toBe(12);
+      expect(result.current[0]).toBe("alert('hello, world')");
+      expect(result.current[0]).not.toBe(
+        "<script>alert('hello, world')</script>",
+      );
     });
 
     it("when a parse option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=a_b_c"),
+      };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          parse: (unparsed) => (JSON.parse(unparsed) as number) + 1,
+        useSearchParamState("name", {
+          parse: (unparsed) => unparsed.split("_"),
         }),
       );
-      expect(result.current[0]).toBe(2);
+      expect(result.current[0]).toStrictEqual(["a", "b", "c"]);
+      expect(result.current[0]).not.toBe("a_b_c");
     });
 
     it("when a validate option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?counter=asdf"),
+      };
+
       const useSearchParamState = buildUseSearchParamState(buildOptions);
       const { result } = renderHook(() =>
         useSearchParamState("counter", {
-          validate: (unvalidated) => (unvalidated as number) + 1,
+          validate: z.number().parse,
         }),
       );
-      expect(result.current[0]).toBe(2);
+      expect(result.current[0]).toBe(null);
+    });
+
+    it("when a deleteEmptySearchParam option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=foo"),
+      };
+
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+      const { result } = renderHook(() =>
+        useSearchParamState("name", {
+          deleteEmptySearchParam: true,
+        }),
+      );
+      act(() => {
+        result.current[1]("");
+      });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/");
+      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/?name=");
+      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+    });
+
+    it("when a isEmptySearchParam option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=foo"),
+      };
+
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+      const { result } = renderHook(() =>
+        useSearchParamState("name", {
+          deleteEmptySearchParam: true,
+          isEmptySearchParam: (searchParamVal) => searchParamVal === null,
+        }),
+      );
+      act(() => {
+        result.current[1]("");
+      });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=");
+      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/");
+      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a pushState option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+      };
       const pushState = jest.fn();
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       const { result } = renderHook(() =>
         useSearchParamState("counter", {
           pushState,
@@ -235,13 +282,16 @@ describe("useSearchParamState", () => {
     });
 
     it("when an onError option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?counter=asdf"),
+      };
       const onError = jest.fn();
-      const schema = z.string();
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       renderHook(() =>
         useSearchParamState("counter", {
           onError,
-          validate: schema.parse,
+          validate: z.number().parse,
         }),
       );
       expect(onError).toHaveBeenCalledTimes(1);
@@ -251,50 +301,96 @@ describe("useSearchParamState", () => {
   describe("build options", () => {
     it("when a stringify option is passed, it should use it", () => {
       buildOptions = {
-        stringify: () => "10",
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/"),
+        stringify: (valToStringify) => (valToStringify as string[]).join("_"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() => useSearchParamState("counter"));
+
+      const { result } = renderHook(() => useSearchParamState("name"));
       act(() => {
-        result.current[1](1);
+        result.current[1](["a", "b", "c"]);
       });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=a_b_c");
+      expect(getPushStateURLString()).not.toBe(
+        `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
+      );
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?counter=10");
     });
 
     it("when a sanitize option is passed, it should use it", () => {
       buildOptions = {
-        sanitize: (unsanitized) => `${unsanitized}2`,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () =>
+          new URL(
+            "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+          ),
+        sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() => useSearchParamState("counter"));
-      expect(result.current[0]).toBe(12);
+
+      const { result } = renderHook(() => useSearchParamState("name"));
+      expect(result.current[0]).toBe("alert('hello, world')");
+      expect(result.current[0]).not.toBe(
+        "<script>alert('hello, world')</script>",
+      );
     });
 
     it("when a parse option is passed, it should use it", () => {
       buildOptions = {
-        parse: (unparsed) => (JSON.parse(unparsed) as number) + 1,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/?name=a_b_c"),
+        parse: (unparsed) => unparsed.split("_"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const { result } = renderHook(() => useSearchParamState("counter"));
-      expect(result.current[0]).toBe(2);
+
+      const { result } = renderHook(() => useSearchParamState("name"));
+      expect(result.current[0]).toStrictEqual(["a", "b", "c"]);
+      expect(result.current[0]).not.toBe("a_b_c");
+    });
+
+    it("when a deleteEmptySearchParam option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=foo"),
+        deleteEmptySearchParam: true,
+      };
+
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+      const { result } = renderHook(() => useSearchParamState("name"));
+      act(() => {
+        result.current[1]("");
+      });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/");
+      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/?name=");
+      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+    });
+
+    it("when a isEmptySearchParam option is passed, it should use it", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=foo"),
+        deleteEmptySearchParam: true,
+        isEmptySearchParam: (searchParamVal) => searchParamVal === null,
+      };
+
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+      const { result } = renderHook(() => useSearchParamState("name"));
+      act(() => {
+        result.current[1]("");
+      });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=");
+      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/");
+      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a pushState option is passed, it should use it", () => {
       const pushState = jest.fn();
       buildOptions = {
         pushState,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       const { result } = renderHook(() => useSearchParamState("counter"));
       act(() => {
         result.current[1](1);
       });
-      expect(result.current[0]).toBe(1);
       expect(pushState).toHaveBeenCalledTimes(1);
     });
 
@@ -302,13 +398,13 @@ describe("useSearchParamState", () => {
       const onError = jest.fn();
       buildOptions = {
         onError,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/?counter=asdf"),
       };
+
       const useSearchParamState = buildUseSearchParamState(buildOptions);
-      const schema = z.string();
       renderHook(() =>
         useSearchParamState("counter", {
-          validate: schema.parse,
+          validate: z.number().parse,
         }),
       );
       expect(onError).toHaveBeenCalledTimes(1);
@@ -318,52 +414,100 @@ describe("useSearchParamState", () => {
   describe("build options with overriding hook options", () => {
     it("when a stringify option is passed, it should use the hook option", () => {
       buildOptions = {
-        stringify: () => "11",
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/"),
+        stringify: (valToStringify) => (valToStringify as string[]).join("-"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
+
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          stringify: () => "10",
+        useSearchParamState("name", {
+          stringify: (valToStringify) => (valToStringify as string[]).join("_"),
         }),
       );
       act(() => {
-        result.current[1](1);
+        result.current[1](["a", "b", "c"]);
       });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=a_b_c");
+      expect(getPushStateURLString()).not.toBe(
+        "https://elanmed.dev/?name=a-b-c",
+      );
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?counter=10");
     });
 
     it("when a sanitize option is passed, it should use the hook option", () => {
       buildOptions = {
-        sanitize: (unsanitized) => `${unsanitized}1`,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () =>
+          new URL(
+            "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+          ),
+        sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, "_"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          sanitize: (unsanitized) => `${unsanitized}2`,
+        useSearchParamState("name", {
+          sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
         }),
       );
-      expect(result.current[0]).toBe(12);
-      expect(result.current[0]).not.toBe(11);
+      expect(result.current[0]).toBe("alert('hello, world')");
+      expect(result.current[0]).not.toBe("_alert('hello, world')_");
     });
 
     it("when a parse option is passed, it should use the hook option", () => {
       buildOptions = {
-        parse: (unparsed) => (JSON.parse(unparsed) as number) + 100,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/?name=a_b_c"),
+        parse: JSON.parse,
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
       const { result } = renderHook(() =>
-        useSearchParamState("counter", {
-          parse: (unparsed) => (JSON.parse(unparsed) as number) + 200,
+        useSearchParamState("name", {
+          parse: (unparsed) => unparsed.split("_"),
         }),
       );
-      expect(result.current[0]).toBe(201);
-      expect(result.current[0]).not.toBe(101);
+      expect(result.current[0]).toStrictEqual(["a", "b", "c"]);
+      expect(result.current[0]).not.toBe("a_b_c");
+    });
+
+    it("when a deleteEmptySearchParam option is passed, it should use the hook option", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=foo"),
+        deleteEmptySearchParam: true,
+      };
+
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+      const { result } = renderHook(() =>
+        useSearchParamState("name", {
+          deleteEmptySearchParam: false,
+        }),
+      );
+      act(() => {
+        result.current[1]("");
+      });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=");
+      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/");
+      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+    });
+
+    it("when a isEmptySearchParam option is passed, it should use the hook option", () => {
+      buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/?name=foo"),
+        deleteEmptySearchParam: true,
+        isEmptySearchParam: (searchParamVal) => searchParamVal === null,
+      };
+
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+      const { result } = renderHook(() =>
+        useSearchParamState("name", {
+          isEmptySearchParam: (searchParamVal) => searchParamVal === "",
+        }),
+      );
+      act(() => {
+        result.current[1]("");
+      });
+      expect(getPushStateURLString()).toBe("https://elanmed.dev/");
+      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/?name=");
+      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a pushState option is passed, it should use the hook option", () => {
@@ -371,7 +515,7 @@ describe("useSearchParamState", () => {
       const hookPushState = jest.fn();
       buildOptions = {
         pushState: buildPushState,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
@@ -383,7 +527,6 @@ describe("useSearchParamState", () => {
       act(() => {
         result.current[1](1);
       });
-      expect(result.current[0]).toBe(1);
       expect(hookPushState).toHaveBeenCalledTimes(1);
       expect(buildPushState).toHaveBeenCalledTimes(0);
     });
@@ -393,14 +536,13 @@ describe("useSearchParamState", () => {
       const buildOnError = jest.fn();
       buildOptions = {
         onError: buildOnError,
-        useURL: () => new URL("https://elanmed.dev/?counter=1"),
+        useURL: () => new URL("https://elanmed.dev/?counter=asdf"),
       };
       const useSearchParamState = buildUseSearchParamState(buildOptions);
 
-      const schema = z.string();
       renderHook(() =>
         useSearchParamState("counter", {
-          validate: schema.parse,
+          validate: z.number().parse,
           onError: hookOnError,
         }),
       );
