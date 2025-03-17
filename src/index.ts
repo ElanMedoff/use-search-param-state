@@ -12,6 +12,8 @@ import {
   useStableCallback,
 } from "./helpers";
 
+// TODO: call replaceState when no valid search param on first render
+
 interface Options<TVal> {
   /**
    * @param `unsanitized` The raw string pulled from the searchParams search param.
