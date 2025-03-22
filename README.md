@@ -18,15 +18,16 @@ A hook to synchronize React state with URL search params.
 ## Basic usage
 
 ```tsx
-import { useSearchParamState } from "use-search-param-state";
+import { buildUseSearchParamState } from "use-search-param-state";
+import { useLocation } from "react-router"; // or any hook from your routing library that can be used to create a URL object
+// import { useURL } from "use-search-param-state/use-url"; // use-search-param-state exports its own `useURL` hook for your convenience
 
-function Root() {
-  return (
-    <SearchParamStateProvider>
-      <Demo />
-    </SearchParamStateProvider>
-  );
+function useUrl() {
+  const location = useLocation();
+  return new URL(location.href);
 }
+
+export const useSearchParamState = buildUseSearchParamState({ useUrl });
 
 function Demo() {
   const [counterState, setCounterState] = useSearchParamState("counter", 0);
@@ -36,23 +37,24 @@ function Demo() {
 or
 
 ```tsx
-import { useSearchParamState } from "use-search-param-state";
+import { buildUseSearchParamState } from "use-search-param-state";
+import { useLocation } from "react-router";
 import { z } from "zod";
 
-function Root() {
-  // this `sanitize` is used by every instance of `useSearchParamState`
-  const sanitize = (unsanitized: string) => yourSanitizer(unsanitized);
-  return (
-    <SearchParamStateProvider buildOptions={{ sanitize }}>
-      <Demo />
-    </SearchParamStateProvider>
-  );
+function useUrl() {
+  const location = useLocation();
+  return new URL(location.href);
 }
+
+export const useSearchParamState = buildUseSearchParamState({
+  useUrl,
+  sanitize: yourSanitizer,
+});
 
 function Demo() {
   const schema = z.number();
   const [counterState, setCounterState] = useSearchParamState("counter", 0, {
-    validate: schema.parse,
+    validate: z.number().parse,
   });
 }
 ```
@@ -61,9 +63,9 @@ function Demo() {
 
 On the first render, `useSearchParamState` will read from the `counter` URL search param.
 
-By default, the `counter` search param is read using `window.location.href`. If the `window` object is `undefined`, `useSearchParamState` will use the `serverSideURL` instead to read from the URL. If `serverSideURL` is also not provided, `counterState` will be set to the initial state (i.e. `0`).
+The `counter` search param is read using the return value of the `useURL` hook. If the `window` object is `undefined`, `useSearchParamState` will use the `serverSideURL`. If `serverSideURL` is also not provided, `counterState` will be set to the initial state (i.e. `0`).
 
-If the `counter` search param does not exist (i.e. `URLSearchParams.get` returns `null`), `counterState` will be set to the initial state.
+If the `counter` search param does not exist (i.e. `URLSearchParams.get` returns `null`), `counterState` will be set to the initial state, and the `counter` search param will be set to the initial state using the `stringify` option. If `enableSetInitialSearchParam` is set to `false`, the `counter` search param will not be set.
 
 Once the `counter` search param is accessed, the raw string is passed to `sanitize`, the output of `sanitize` is passed to `parse`, and finally the output of `parse` is passed to `validate`. Note that `useSearchParamState` aims to return a _parsed_ value, not a _stringified_ value!
 
@@ -71,253 +73,283 @@ If `sanitize`, `parse`, or `validate` throw an error, the `onError` option is ca
 
 If none of `sanitize`, `parse`, and `validate` throw an error, `counterState` is set to the sanitized, parsed, and validated value in the `counter` search param.
 
-> Note that `useSearchParamState` intentionally does _not_ set the URL on the first render, since this can cause an infinite loop when navigating backwards. For example, say we have a url `/blog` with a search param `search` defaulted to `hello`. Navigating to `/blog` would immediately add `?search=hello` to the URL, so navigating backwards would push `/blog` ... which would add `?search=hello` to the URL again!
-
 ---
 
-When setting the state using `setCounterState`, the new state is stringified using the `stringify` option, and the URL is set using the `pushState` option.
+When setting the state using `setCounterState`, the new state is stringified using the `stringify` option, and the URL is set using the `pushState` option. If `setCounterState` is called with the `replace` option, the `replaceState` option is used instead of the `pushState` option.
 
 If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
-However, if `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set. Additionally, if the `rollbackOnError` option is set to `true`, `counterState` will be set to its value prior to when `setCounterState` was called. Otherwise, `counterState` will retain its new value, and the `counter` URL search param will be out of sync with `counterState`. The latter behavior is the default, since local state tends to take precedence over URL state.
+However, if `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set.
 
-Note that multiple instances of `useSearchParamState` that read from the same URL search param will be kept in-sync thanks to the `SearchParamStateProvider` wrapping your app.
+## `useSearchParamState` vs `getSearchParam`
 
-## Options
+`use-search-param-state` exports two main utilities: `buildUseSearchParamState` and `buildGetSearchParam`, which are used to create `useSearchParamState` and `getSearchParam`. The primary difference between `useSearchParamState` and `getSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam` is a simple function. As a result, `useSearchParamState` is able to react to URL changes to always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. In React components, prefer to use `useSearchParamState`, while outside React, `getSearchParam` is a great alternative.
 
-`useSearchParamState` accepts the following options:
+## All options
 
-```tsx
-interface UseSearchParamStateOptions<TVal> {
+````ts
+interface Options<TVal> {
+  /**
+   * `sanitize` defaults to the following function:
+   *
+   * ```ts
+   * const defaultSanitize = (unsanitized: string) => unsanitized;
+   * ```
+   *
+   * `sanitize` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `sanitize` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies for `getSearchParam` and `buildGetSearchParam`.
+   *
+   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state. If using `getSearchParam`, `null` is returned.
+   *
+   * @param `unsanitized` The raw string pulled from the searchParams search param.
+   * @returns The sanitized string.
+   */
+  sanitize?: (unsanitized: string) => string;
+
+  /**
+   *
+   * `parse` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultParse<TVal>(unparsed: string): TVal {
+   *   // JSON.parse errors on "undefined"
+   *   if (unparsed === "undefined") return undefined as TVal;
+   *
+   *   try {
+   *     return JSON.parse(unparsed) as TVal;
+   *   } catch {
+   *     return unparsed as TVal;
+   *   }
+   * }
+   * ```
+   *
+   * `parse` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `parse` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies for `getSearchParam` and `buildGetSearchParam`.
+   *
+   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state. If using `getSearchParam`, `null` is returned.
+   *
+   * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
+   * @returns A parsed value of the type `TVal` i.e. the type of `initialState`.
+   */
+  parse?: (unparsed: string) => TVal;
+
+  /**
+   * `validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error.
+   *
+   * `validate` defaults to the following function:
+   *
+   * ```
+   * const defaultValidate = <TVal>(unvalidated: unknown) => unvalidated as TVal;
+   * ```
+   *
+   *
+   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not `buildUseSearchParamState`/`buildGetSearchParam`.
+   *
+   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state. If using `getSearchParam`, `null` is returned.
+   *
+   * @param `unvalidated` The result of `parse` is passed as `unvalidated`.
+   * @returns The `unvalidated` argument, now validated as of type `TVal`.
+   */
+  validate?: (unvalidated: unknown) => TVal;
+
+  /**
+   * `stringify` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultStringify<TVal>(valToStringify: TVal) {
+   *   // avoid wrapping strings in quotes
+   *   if (typeof valToStringify === "string") return valToStringify;
+   *   return JSON.stringify(valToStringify);
+   * }
+   * ```
+   *
+   * `stringify` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `stringify` is passed to both, only the option passed to `useSearchParamState` is respected.
+   *
+   * @param `valToStringify` The search param to stringify before setting it in the URL.
+   * @returns The stringified search param.
+   */
   stringify?: (valToStringify: TVal) => string;
+
+  /**
+   * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   *
+   * `deleteEmptySearchParam` defaults to `false`.
+   *
+   * `deleteEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `deleteEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is respected.
+   */
+  deleteEmptySearchParam?: boolean;
+
+  /**
+   * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   *
+   * `isEmptySearchParam` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
+   *  return (
+   *    searchParamVal === null ||
+   *    searchParamVal === undefined ||
+   *    searchParamVal === ""
+   *  );
+   *}
+   *```
+
+   * `isEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `isEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is respected.
+   *
+   * @param `searchParamVal` When setting the state, the new state is passed as `searchParamVal`.
+   * @returns A boolean.
+   */
+  isEmptySearchParam?: (searchParamVal: TVal) => boolean;
+
+  /**
+   * `pushState` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultPushState(url: URL) {
+   *   window.history.pushState({}, "", url);
+   * }
+   * ```
+   *
+   * `pushState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `pushState` is passed to both, only the option passed to `useSearchParamState` is respected.
+   *
+   * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
+   * @returns
+   */
+  pushState?: (url: URL) => void;
+
+  /**
+   * `replaceState` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultReplaceState(url: URL) {
+   *   window.history.replaceState({}, "", url);
+   * }
+   *   ```
+   *
+   * `replaceState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `replaceState` is passed to both, only the option passed to `useSearchParamState` is respected.
+   *
+   * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState` with the `replace` option as `true`.
+   * @returns
+   */
+  replaceState?: (url: URL) => void;
+
+  /**
+   * If the search param state resolves to `null`, the URL is replaced with the search param set as the `initialState` option.
+   *
+   * `enableSetInitialSearchParam` defaults to `true`
+   *
+   * `enableSetInitialSearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `enableSetInitialSearchParam` is passed to both, only the option passed to `useSearchParamState` is respected.
+   */
+  enableSetInitialSearchParam?: boolean;
+
+  /**
+   * `onError` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultOnError(_e: unknown) {
+   *   return;
+   * }
+   * ```
+   *
+   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `onError` is passed to both, both `onError` functions are called. The same applies for `getSearchParam` and `buildGetSearchParam`.
+   *
+   * @param `error` The error caught in one of `try` `catch` blocks.
+   * @returns
+   */
+  onError?: (error: unknown) => void;
+
+  /**
+   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
+   *
+   * `serverSideURL` has no default.
+   *
+   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not `buildUseSearchParamState`/`buildGetSearchParam`.
+   *
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   */
+  serverSideURL?: URL;
+
+  /**
+   * A React hook to return the current URL. This hook is expected to re-render when the URL changes.
+   *
+   * The hook to pass will depend on your routing library. A basic `useURL` hook is exported by `use-search-param-state/use-url` for your convenience.
+   *
+   * `useURL` is required and has no default.
+   *
+   * `useURL` can only be passed to `buildUseSearchParamState`, not `useSearchParamState`.
+   *
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   */
+  useURL: () => URL;
+
+  /**
+   * A function to return the current URL object.
+   *
+   * `getURL` is required and has no default.
+   *
+   * `getURL` can only be passed to `buildGetSearchParam`, not `getSearchParam`.
+   *
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   */
+  getURL: () => URL;
+}
+````
+
+## `buildUseSearchParamState` options
+
+```ts
+interface BuildUseSearchParamState<TVal> {
+  sanitize?: (unsanitized: string) => string;
+  parse?: (unparsed: string) => TVal;
+  stringify?: (valToStringify: TVal) => string;
+  deleteEmptySearchParam?: boolean;
+  isEmptySearchParam?: (searchParamVal: TVal) => boolean;
+  pushState?: (url: URL) => void;
+  replaceState?: (url: URL) => void;
+  enableSetInitialSearchParam?: boolean;
+  onError?: (error: unknown) => void;
+  serverSideURL?: URL;
+  useURL: () => URL;
+}
+```
+
+## `useSearchParamState` options
+
+```ts
+interface UseSearchParamStateOptions<TVal> {
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
+  stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  serverSideURL?: string;
-  rollbackOnError?: boolean;
-  pushState?: (stringifiedSearchParams: string) => void;
-  onError?: (e: unknown) => void;
+  pushState?: (url: URL) => void;
+  replaceState?: (url: URL) => void;
+  enableSetInitialSearchParam?: boolean;
+  onError?: (error: unknown) => void;
+  serverSideURL?: URL;
 }
 ```
 
-Note that `sanitize`, `parse`, and `validate` run in the following order when pulling the initial state from the URL search param:
-
-```tsx
-// simplified
-const rawSearchParam = new URLSearchParams(window.location.search).get(
-  searchParam,
-);
-const sanitized = options.sanitize(rawSearchParam);
-const parsed = options.parse(sanitized);
-const validated = options.validate(parsed);
-
-return validated;
-```
-
-### `sanitize`
-
-A function with the following type: `(unsanitized: string) => string`.
-
-`sanitize` is called with the raw string pulled from the URL search param.
-
-If `sanitize` throws an error, `onError` will be called and `useSearchParamState` will return the initial state.
-
-`sanitize` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `sanitize` option is passed to both, only the `sanitize` passed to `useSearchParamState` will be called.
-
-`sanitize` has no default value.
-
-### `parse`
-
-A function with the following type: `(unparsed: string) => TVal`.
-
-The result of `sanitize` is passed as the `unparsed` argument to `parse`.
-
-If `parse` throws an error, `onError` will be called and `useSearchParamState` will return the initial state.
-
-`parse` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `parse` option is passed to both, only the `parse` passed to `useSearchParamState` will be called.
-
-`parse` defaults to:
+## `buildGetSearchParam` options
 
 ```ts
-export function defaultParse(unparsed: string) {
-  // JSON.parse errors on "undefined"
-  if (unparsed === "undefined") return undefined;
-
-  // Number parses "" to 0
-  if (unparsed === "") return "";
-
-  // Number coerces bigints to numbers
-  const maybeNum = Number(unparsed);
-  if (!Number.isNaN(maybeNum)) return maybeNum;
-
-  try {
-    return JSON.parse(unparsed);
-  } catch {
-    return unparsed;
-  }
+interface BuildGetSearchParamOptions<TVal> {
+  sanitize?: (unsanitized: string) => string;
+  parse?: (unparsed: string) => TVal;
+  validate?: (unvalidated: unknown) => TVal;
+  onError?: (error: unknown) => void;
+  serverSideURL?: URL;
+  getURL: () => URL;
 }
 ```
 
-### `validate`
-
-A function with the following type: `(unvalidated: unknown) => TVal`.
-
-The result of `parse` is passed as the `unvalidated` argument to `validate`.
-
-`validate` is expected to validate and return the `unvalidated` argument passed to it (presumably of type `TVal`), or throw an error. If `validate` throws an error, `onError` will be called and `useSearchParamState` will return the initial state.
-
-`validate` has no default value.
-
-### `deleteEmptySearchParam`
-
-A `boolean`.
-
-When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
-
-`deleteEmptySearchParam` defaults to `false`.
-
-### `isEmptySearchParam`
-
-A function with the following type: `(searchParamVal: TVal) => boolean;`.
-
-When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
-
-`isEmptySearchParam` defaults to:
+## `getSearchParam` options
 
 ```ts
-function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
-  return (
-    searchParamVal === null ||
-    searchParamVal === undefined ||
-    searchParamVal === ""
-  );
+interface GetSearchParamOptions<TVal> {
+  sanitize?: (unsanitized: string) => string;
+  parse?: (unparsed: string) => TVal;
+  validate?: (unvalidated: unknown) => TVal;
+  onError?: (error: unknown) => void;
+  serverSideURL?: URL;
 }
 ```
-
-### `stringify`
-
-A function with the following type: `(valToStringify: TVal) => string`.
-
-`stringify` is used to dehydrate the search param state before setting the stringified value in the URL.
-
-If `stringify` throws an error, `onError` will be called and the URL will not be set.
-
-`stringify` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `stringify` option is passed to both, only the `stringify` passed to `useSearchParamState` will be called.
-
-`stringify` defaults to:
-
-```tsx
-function defaultStringify<TVal>(valToStringify: TVal) {
-  // avoid wrapping strings in quotes
-  if (typeof valToStringify === "string") return valToStringify;
-  return JSON.stringify(valToStringify);
-}
-```
-
-### `serverSideURL`
-
-A value of type `string` - any valid `string` input to the `URL` constructor.
-
-When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js:
-
-```tsx
-import url from "url";
-
-export const getServerSideProps: GetServerSideProps = ({ req }) => {
-  const protocol = req.headers["x-forwarded-proto"] || "http";
-  const serverSideURL = `${protocol}://${req.headers.host}${req.url}`;
-
-  return {
-    props: { serverSideURL },
-  };
-};
-
-export default function Home({
-  serverSideURL,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  const [counter] = useSearchParamState("counter", 0, {
-    serverSideURL,
-  });
-
-  // has the correct value for `counter` when rendered on the server
-  return <div>counter: {counter}</div>;
-}
-```
-
-Note that if no `serverSideURL` option is passed and `window` is `undefined`, you may encounter hydration errors.
-
-### `rollbackOnError`
-
-A `boolean`.
-
-When calling the `setState` function returned by `useSearchParamState`, `pushState` will be called to set the URL search param with the latest React state value. If setting the search param in the URL throws an error, and `rollbackOnError` is set to `true`, the local React state will "rollback" to its previous value.
-
-`rollbackOnError` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `rollbackOnError` option is passed to both, only the `rollbackOnError` passed to `useSearchParamState` will be called.
-
-`rollbackOnError` defaults to `false`.
-
-### `pushState`
-
-A function with the following type: `(href: string) => void`.
-
-`pushState` is called to set the search param state in the URL.
-
-`pushState` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When a `pushState` option is passed to both, only the `pushState` passed to `useSearchParamState` will be called.
-
-`pushState` defaults to:
-
-```tsx
-function defaultPushState(stringifiedSearchParams: string) {
-  window.history.pushState({}, "", stringifiedSearchParams);
-}
-```
-
-### `onError`
-
-A function with the following type: `(e: unknown) => void`.
-
-Most actions in `useSearchParamState` are wrapped in a `try` `catch` block - `onError` is called whenever the `catch` block is reached. This includes situations when `sanitize`, `parse`, or `validate` throw an error.
-
-`onError` can be passed directly to `useSearchParamState`, or to `SearchParamStateProvider`. When an `onError` option is passed to both, both the functions will be called.
-
-## Testing
-
-The best approach to test uses of `useSearchParamState` is by mocking the `window.location` property directly in your tests:
-
-```ts
-Object.defineProperty(window, "location", {
-  writable: true,
-  value: { search: "?counter=1" },
-});
-```
-
-If you mutate `window.location` directly, i.e.
-
-```ts
-window.location = { search: "?counter=1" };
-```
-
-You may receive an error that `window.location` is read-only.
-
----
-
-Also note that since this library utilizes context, you'll need to use a `wrappedRender` like the following when testing components outside your root:
-
-```tsx
-import { render, RenderOptions } from "@testing-library/react";
-
-function wrappedRender(
-  ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">,
-) {
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <SearchParamStateProvider>{children}</SearchParamStateProvider>
-  );
-
-  return render(ui, { wrapper, ...options });
-}
-```
-
-If `useSearchParamState` is used without a parent `SearchParamStateProvider`, it'll throw an error.

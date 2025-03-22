@@ -13,8 +13,6 @@ import {
   defaultReplaceState,
 } from "./helpers";
 
-// comment, default, both, error,
-
 interface Options<TVal> {
   /**
    * `sanitize` defaults to the following function:
@@ -66,6 +64,7 @@ interface Options<TVal> {
    * ```
    * const defaultValidate = <TVal>(unvalidated: unknown) => unvalidated as TVal;
    * ```
+   *
    *
    * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not `buildUseSearchParamState`/`buildGetSearchParam`.
    *
@@ -183,6 +182,17 @@ interface Options<TVal> {
   onError?: (error: unknown) => void;
 
   /**
+   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
+   *
+   * `serverSideURL` has no default.
+   *
+   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not `buildUseSearchParamState`/`buildGetSearchParam`.
+   *
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   */
+  serverSideURL?: URL;
+
+  /**
    * A React hook to return the current URL. This hook is expected to re-render when the URL changes.
    *
    * The hook to pass will depend on your routing library. A basic `useURL` hook is exported by `use-search-param-state/use-url` for your convenience.
@@ -205,17 +215,6 @@ interface Options<TVal> {
    * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
    */
   getURL: () => URL;
-
-  /**
-   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
-   *
-   * `serverSideURL` has no default.
-   *
-   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not `buildUseSearchParamState`/`buildGetSearchParam`.
-   *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
-   */
-  serverSideURL?: URL;
 }
 
 interface CommonOptions<TVal> {
