@@ -54,13 +54,10 @@ export function defaultReplaceState(url: URL) {
   window.history.replaceState({}, "", url);
 }
 
-export function defaultSanitize(unsanitized: string) {
-  return unsanitized;
-}
+export const defaultSanitize = (unsanitized: string) => unsanitized;
 
-export function defaultValidate<TVal>(unvalidated: unknown) {
-  return unvalidated as TVal;
-}
+export const defaultValidate = <TVal>(unvalidated: unknown) =>
+  unvalidated as TVal;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function defaultOnError(_e: unknown) {

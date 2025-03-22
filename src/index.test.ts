@@ -472,7 +472,7 @@ describe("useSearchParamState", () => {
       expect(replaceState).toHaveBeenCalledTimes(1);
     });
 
-    it("when a enableSetInitialSearchParam option is passed, it should use it", () => {
+    it("when an enableSetInitialSearchParam option is passed, it should use it", () => {
       const buildOptions = {
         enableSetInitialSearchParam: false,
         useURL: () => new URL("https://elanmed.dev/"),
