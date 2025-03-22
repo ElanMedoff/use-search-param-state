@@ -331,6 +331,20 @@ describe("useSearchParamState", () => {
       expect(replaceState).toHaveBeenCalledTimes(1);
     });
 
+    it("when an enableSetInitialSearchParam option is passed, it should use it", () => {
+      const buildOptions = {
+        useURL: () => new URL("https://elanmed.dev/"),
+      };
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+
+      renderHook(() =>
+        useSearchParamState("counter", 0, {
+          enableSetInitialSearchParam: false,
+        }),
+      );
+      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(0);
+    });
+
     it("when an onError option is passed, it should use it", () => {
       const buildOptions = {
         useURL: () => new URL("https://elanmed.dev/?counter=asdf"),
@@ -456,6 +470,17 @@ describe("useSearchParamState", () => {
 
       renderHook(() => useSearchParamState("counter", 0));
       expect(replaceState).toHaveBeenCalledTimes(1);
+    });
+
+    it("when a enableSetInitialSearchParam option is passed, it should use it", () => {
+      const buildOptions = {
+        enableSetInitialSearchParam: false,
+        useURL: () => new URL("https://elanmed.dev/"),
+      };
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+
+      renderHook(() => useSearchParamState("counter", 0));
+      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(0);
     });
 
     it("when an onError option is passed, it should use it", () => {
@@ -611,6 +636,21 @@ describe("useSearchParamState", () => {
       );
       expect(hookReplaceState).toHaveBeenCalledTimes(1);
       expect(buildReplaceState).toHaveBeenCalledTimes(0);
+    });
+
+    it("when an enableSetInitialSearchParam option is passed, it should use the hook option", () => {
+      const buildOptions = {
+        enableSetInitialSearchParam: true,
+        useURL: () => new URL("https://elanmed.dev/"),
+      };
+      const useSearchParamState = buildUseSearchParamState(buildOptions);
+
+      renderHook(() =>
+        useSearchParamState("counter", 0, {
+          enableSetInitialSearchParam: false,
+        }),
+      );
+      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(0);
     });
 
     it("when an onError option is passed, it should use both options", () => {

@@ -66,6 +66,13 @@ interface Options<TVal> {
   replaceState?: (url: URL) => void;
 
   /**
+   * If the search param state resolves to `null`, the URL is replaced with the search param set as the `initialState` option.
+   *
+   * Defaults to `true`
+   */
+  enableSetInitialSearchParam?: boolean;
+
+  /**
    * @param `error` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
    * @returns
    */
@@ -113,6 +120,7 @@ interface WriteOptions<TVal> {
   pushState?: Options<TVal>["pushState"];
   replaceState?: Options<TVal>["replaceState"];
   stringify?: Options<TVal>["stringify"];
+  enableSetInitialSearchParam?: Options<TVal>["enableSetInitialSearchParam"];
 }
 
 type BuildUseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
@@ -177,6 +185,10 @@ function buildUseSearchParamState(
       hookOptions.deleteEmptySearchParam ??
       buildOptions.deleteEmptySearchParam ??
       false;
+    const enableSetInitialSearchParam =
+      hookOptions.enableSetInitialSearchParam ??
+      buildOptions.enableSetInitialSearchParam ??
+      true;
     const isEmptySearchParamOption =
       hookOptions.isEmptySearchParam ??
       buildOptions.isEmptySearchParam ??
@@ -287,10 +299,15 @@ function buildUseSearchParamState(
     );
 
     React.useEffect(() => {
-      if (searchParamVal == null) {
+      if (searchParamVal == null && enableSetInitialSearchParam) {
         setSearchParam(getInitialState(), { replace: true });
       }
-    }, [getInitialState, searchParamVal, setSearchParam]);
+    }, [
+      enableSetInitialSearchParam,
+      getInitialState,
+      searchParamVal,
+      setSearchParam,
+    ]);
 
     return [defaultedSearchParamVal, setSearchParam] as const;
   };
