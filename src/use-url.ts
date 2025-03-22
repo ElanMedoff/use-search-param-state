@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 
 const customEventNames = ["pushState", "replaceState"] as const;
-const eventNames = ["popstate", ...customEventNames] as const;
+const nativeEventNames = ["popstate", "hashchange"] as const;
+const eventNames = [...nativeEventNames, ...customEventNames] as const;
 
 // from Wouter: https://github.com/molefrog/wouter/blob/110b6694a9b3220460eed32640fa4778d10bdf52/packages/wouter/src/use-browser-location.js#L57
 const patchKey = Symbol.for("use-search-param-state");
