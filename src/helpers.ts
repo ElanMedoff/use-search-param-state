@@ -50,6 +50,10 @@ export function defaultPushState(url: URL) {
   window.history.pushState({}, "", url);
 }
 
+export function defaultReplaceState(url: URL) {
+  window.history.replaceState({}, "", url);
+}
+
 export function defaultSanitize(unsanitized: string) {
   return unsanitized;
 }

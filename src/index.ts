@@ -10,9 +10,8 @@ import {
   defaultOnError,
   useStableValue,
   useStableCallback,
+  defaultReplaceState,
 } from "./helpers";
-
-// TODO: call replaceState when no valid search param on first render
 
 interface Options<TVal> {
   /**
@@ -61,6 +60,12 @@ interface Options<TVal> {
   pushState?: (url: URL) => void;
 
   /**
+   * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState` with the `replace` option as `true`.
+   * @returns
+   */
+  replaceState?: (url: URL) => void;
+
+  /**
    * @param `error` The error caught in one of `useSearchParamState`'s `try` `catch` blocks.
    * @returns
    */
@@ -106,6 +111,7 @@ interface WriteOptions<TVal> {
   deleteEmptySearchParam?: Options<TVal>["deleteEmptySearchParam"];
   isEmptySearchParam?: Options<TVal>["isEmptySearchParam"];
   pushState?: Options<TVal>["pushState"];
+  replaceState?: Options<TVal>["replaceState"];
   stringify?: Options<TVal>["stringify"];
 }
 
@@ -161,6 +167,10 @@ function buildUseSearchParamState(
       defaultParse;
     const pushStateOption =
       hookOptions.pushState ?? buildOptions.pushState ?? defaultPushState;
+    const replaceStateOption =
+      hookOptions.replaceState ??
+      buildOptions.replaceState ??
+      defaultReplaceState;
     const sanitizeOption =
       hookOptions.sanitize ?? buildOptions.sanitize ?? defaultSanitize;
     const deleteEmptySearchParam =
@@ -187,6 +197,7 @@ function buildUseSearchParamState(
     const stringify = useStableCallback(stringifyOption);
     const parse = useStableCallback(parseOption);
     const pushState = useStableCallback(pushStateOption);
+    const replaceState = useStableCallback(replaceStateOption);
     const sanitize = useStableCallback(sanitizeOption);
     const isEmptySearchParam = useStableCallback(isEmptySearchParamOption);
     const validate = useStableCallback(validateOption);
@@ -194,39 +205,45 @@ function buildUseSearchParamState(
     const hookOnError = useStableCallback(hookOnErrorOption);
     const getInitialState = useStableValue(initialState);
 
-    const searchParamVal =
-      React.useMemo(
-        () =>
-          _getSearchParamVal<TVal>({
-            url,
-            sanitize,
-            localOnError: hookOnError,
-            buildOnError,
-            searchParam,
-            validate,
-            parse,
-            serverSideURL,
-          }),
-        [
-          buildOnError,
-          hookOnError,
-          parse,
-          sanitize,
-          searchParam,
-          serverSideURL,
+    const searchParamVal = React.useMemo(
+      () =>
+        _getSearchParamVal<TVal>({
           url,
+          sanitize,
+          localOnError: hookOnError,
+          buildOnError,
+          searchParam,
           validate,
-        ],
-      ) ?? getInitialState();
+          parse,
+          serverSideURL,
+        }),
+      [
+        buildOnError,
+        hookOnError,
+        parse,
+        sanitize,
+        searchParam,
+        serverSideURL,
+        url,
+        validate,
+      ],
+    );
+
+    const defaultedSearchParamVal = searchParamVal ?? getInitialState();
 
     const setSearchParam = React.useCallback(
-      (val: TVal | ((currVal: TVal) => TVal)) => {
+      (
+        val: TVal | ((currVal: TVal) => TVal),
+        { replace }: { replace: boolean } = { replace: false },
+      ) => {
         let valToSet: TVal;
         if (val instanceof Function) {
-          valToSet = val(searchParamVal);
+          valToSet = val(defaultedSearchParamVal);
         } else {
           valToSet = val;
         }
+
+        const pushOrReplaceState = replace ? replaceState : pushState;
 
         try {
           const maybeURL = maybeGetURL({
@@ -242,13 +259,13 @@ function buildUseSearchParamState(
 
           if (deleteEmptySearchParam && isEmptySearchParam(valToSet)) {
             url.searchParams.delete(searchParam);
-            pushState(url);
+            pushOrReplaceState(url);
             return;
           }
 
           const stringified = stringify(valToSet);
           url.searchParams.set(searchParam, stringified);
-          pushState(url);
+          pushOrReplaceState(url);
         } catch (error) {
           hookOnError(error);
           buildOnError(error);
@@ -260,15 +277,22 @@ function buildUseSearchParamState(
         hookOnError,
         isEmptySearchParam,
         pushState,
+        replaceState,
         searchParam,
-        searchParamVal,
+        defaultedSearchParamVal,
         serverSideURL,
         stringify,
         url,
       ],
     );
 
-    return [searchParamVal, setSearchParam] as const;
+    React.useEffect(() => {
+      if (searchParamVal == null) {
+        setSearchParam(getInitialState(), { replace: true });
+      }
+    }, [getInitialState, searchParamVal, setSearchParam]);
+
+    return [defaultedSearchParamVal, setSearchParam] as const;
   };
 }
 
