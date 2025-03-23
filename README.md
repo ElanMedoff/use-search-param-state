@@ -109,11 +109,11 @@ interface AllOptions<TVal> {
    * ```
    *
    * `sanitize` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If
-   * `sanitize` is passed to both, only the option passed to `useSearchParamState` is respected.
-   * The same applies to `getSearchParam` and `buildGetSearchParam`.
+   * `sanitize` is passed to both, only the option passed to `useSearchParamState` is
+   * respected. The same applies to `getSearchParam` and `buildGetSearchParam`.
    *
-   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state.
-   * If using `getSearchParam`, `null` is returned.
+   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default
+   * state. If using `getSearchParam`, `null` is returned.
    *
    * @param `unsanitized` The raw string pulled from the searchParams search param.
    * @returns The sanitized string.
@@ -137,12 +137,12 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `parse` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `parse`
-   * is passed to both, only the option passed to `useSearchParamState` is respected. The same
-   * applies to `getSearchParam` and `buildGetSearchParam`.
+   * `parse` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If
+   * `parse` is passed to both, only the option passed to `useSearchParamState` is respected.
+   * The same applies to `getSearchParam` and `buildGetSearchParam`.
    *
-   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state.
-   * If using `getSearchParam`, `null` is returned.
+   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default
+   * state. If using `getSearchParam`, `null` is returned.
    *
    * @param `unparsed` The result of `sanitize` is passed as `unparsed`.
    * @returns A parsed value of the type `TVal` i.e. the type of `initialState`.
@@ -162,8 +162,8 @@ interface AllOptions<TVal> {
    * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not
    * `buildUseSearchParamState`/`buildGetSearchParam`.
    *
-   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state.
-   * If using `getSearchParam`, `null` is returned.
+   * If an error is thrown, `onError` is called and `useSearchParamState` returns the default
+   * state. If using `getSearchParam`, `null` is returned.
    *
    * @param `unvalidated` The result of `parse` is passed as `unvalidated`.
    * @returns The `unvalidated` argument, now validated as of type `TVal`.
@@ -181,9 +181,9 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `stringify` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If
-   * `stringify` is passed to both, only the option passed to `useSearchParamState` is respected.
-   * The same applies to `setSearchParam` and `buildSetSearchParam`
+   * `stringify` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
+   * If `stringify` is passed to both, only the option passed to `useSearchParamState` is
+   * respected. The same applies to `setSearchParam` and `buildSetSearchParam`
    *
    * @param `valToStringify` The search param to stringify before setting it in the URL.
    * @returns The stringified search param.
@@ -205,8 +205,8 @@ interface AllOptions<TVal> {
   deleteEmptySearchParam?: boolean;
 
   /**
-   * When setting the search param, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam`
-   * returns `true`, the search param will be deleted from the URL.
+   * When setting the search param, if `deleteEmptySearchParam` is `true` and
+   * `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    *
    * `isEmptySearchParam` defaults to the following function:
    *
@@ -219,9 +219,10 @@ interface AllOptions<TVal> {
    *  );
    * }
    * ```
-   * `isEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
-   * If `isEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is
-   * respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
+   * `isEmptySearchParam` can be passed to both `useSearchParamState` and
+   * `buildUseSearchParamState`. If `isEmptySearchParam` is passed to both, only the option
+   * passed to `useSearchParamState` is respected. The same applies to `setSearchParam` and
+   * `buildSetSearchParam`.
    *
    * @param `searchParamVal` When setting the state, the new state is passed as `searchParamVal`.
    * @returns A boolean.
@@ -238,8 +239,8 @@ interface AllOptions<TVal> {
    * ```
    *
    * `pushState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If
-   * `pushState` is passed to both, only the option passed to `useSearchParamState` is respected.
-   * The same applies to `setSearchParam` and `buildSetSearchParam`.
+   * `pushState` is passed to both, only the option passed to `useSearchParamState` is
+   * respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
    * @param `url` The `url` to set as the URL when calling the `setState` function returned by
    * `useSearchParamState`.
@@ -256,9 +257,9 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `replaceState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If
-   * `replaceState` is passed to both, only the option passed to `useSearchParamState` is respected.
-   * The same applies to `setSearchParam` and `buildSetSearchParam`.
+   * `replaceState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
+   * If `replaceState` is passed to both, only the option passed to `useSearchParamState` is
+   * respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
    * @param `url` The `url` to set as the URL when calling the `setState` function returned by
    * `useSearchParamState` with the `replace` option as `true`.
@@ -267,8 +268,8 @@ interface AllOptions<TVal> {
   replaceState?: (url: URL) => void;
 
   /**
-   * If the search param state resolves to `null`, the URL is replaced with the search param set as
-   * the `initialState` option.
+   * If the search param state resolves to `null`, the URL is replaced with the search param
+   * set as the `initialState` option.
    *
    * `enableSetInitialSearchParam` defaults to `true`
    *
@@ -298,7 +299,8 @@ interface AllOptions<TVal> {
 
   /**
    * When passed, `serverSideURL` will be used when `window` is `undefined` to access the URL
-   * search param. This is useful for generating content on the server, i.e. with Next.js or Remix.
+   * search param. This is useful for generating content on the server, i.e. with Next.js or
+   * Remix.
    *
    * `serverSideURL` has no default.
    *
