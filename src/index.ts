@@ -17,6 +17,38 @@ import { buildUseURL } from "./build-use-url";
 
 interface Options<TVal> {
   /**
+   * `onError` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultOnError(_e: unknown) {
+   *   return;
+   * }
+   * ```
+   *
+   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
+   * If `onError` is passed to both, both `onError` functions are called. The same applies
+   * to `getSearchParam`,`buildGetSearchParam`, `setSearchParam`, and `buildSetSearchParam`.
+   *
+   * @param `error` The error caught in one of `try` `catch` blocks.
+   * @returns
+   */
+  onError?: (error: unknown) => void;
+
+  /**
+   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the
+   * URL search param. This is useful for generating content on the server, i.e. with
+   * Next.js or Remix.
+   *
+   * `serverSideURL` has no default.
+   *
+   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not
+   * `buildUseSearchParamState`/`buildGetSearchParam`.
+   *
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   */
+  serverSideURL?: URL;
+
+  /**
    * `sanitize` defaults to the following function:
    *
    * ```ts
@@ -194,38 +226,6 @@ interface Options<TVal> {
    * the option passed to `useSearchParamState` is respected.
    */
   enableSetInitialSearchParam?: boolean;
-
-  /**
-   * `onError` defaults to the following function:
-   *
-   * ```ts
-   * export function defaultOnError(_e: unknown) {
-   *   return;
-   * }
-   * ```
-   *
-   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
-   * If `onError` is passed to both, both `onError` functions are called. The same applies
-   * to `getSearchParam`,`buildGetSearchParam`, `setSearchParam`, and `buildSetSearchParam`.
-   *
-   * @param `error` The error caught in one of `try` `catch` blocks.
-   * @returns
-   */
-  onError?: (error: unknown) => void;
-
-  /**
-   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the
-   * URL search param. This is useful for generating content on the server, i.e. with
-   * Next.js or Remix.
-   *
-   * `serverSideURL` has no default.
-   *
-   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not
-   * `buildUseSearchParamState`/`buildGetSearchParam`.
-   *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
-   */
-  serverSideURL?: URL;
 
   /**
    * If `true`, when setting the search param, the updated URL will replace the top item

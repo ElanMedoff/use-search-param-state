@@ -100,7 +100,39 @@ import { useURL } from "use-search-param-state/use-url";
 ## All options
 
 ````ts
-interface Options<TVal> {
+interface AllOptions<TVal> {
+  /**
+   * `onError` defaults to the following function:
+   *
+   * ```ts
+   * export function defaultOnError(_e: unknown) {
+   *   return;
+   * }
+   * ```
+   *
+   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
+   * If `onError` is passed to both, both `onError` functions are called. The same applies
+   * to `getSearchParam`,`buildGetSearchParam`, `setSearchParam`, and `buildSetSearchParam`.
+   *
+   * @param `error` The error caught in one of `try` `catch` blocks.
+   * @returns
+   */
+  onError?: (error: unknown) => void;
+
+  /**
+   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the
+   * URL search param. This is useful for generating content on the server, i.e. with
+   * Next.js or Remix.
+   *
+   * `serverSideURL` has no default.
+   *
+   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not
+   * `buildUseSearchParamState`/`buildGetSearchParam`.
+   *
+   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   */
+  serverSideURL?: URL;
+
   /**
    * `sanitize` defaults to the following function:
    *
@@ -281,38 +313,6 @@ interface Options<TVal> {
   enableSetInitialSearchParam?: boolean;
 
   /**
-   * `onError` defaults to the following function:
-   *
-   * ```ts
-   * export function defaultOnError(_e: unknown) {
-   *   return;
-   * }
-   * ```
-   *
-   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
-   * If `onError` is passed to both, both `onError` functions are called. The same applies
-   * to `getSearchParam`,`buildGetSearchParam`, `setSearchParam`, and `buildSetSearchParam`.
-   *
-   * @param `error` The error caught in one of `try` `catch` blocks.
-   * @returns
-   */
-  onError?: (error: unknown) => void;
-
-  /**
-   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the
-   * URL search param. This is useful for generating content on the server, i.e. with
-   * Next.js or Remix.
-   *
-   * `serverSideURL` has no default.
-   *
-   * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not
-   * `buildUseSearchParamState`/`buildGetSearchParam`.
-   *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
-   */
-  serverSideURL?: URL;
-
-  /**
    * If `true`, when setting the search param, the updated URL will replace the top item
    * in the history stack instead of pushing to it.
    *
@@ -353,16 +353,19 @@ interface Options<TVal> {
 
 ```ts
 interface BuildUseSearchParamState<TVal> {
+  onError?: (error: unknown) => void;
+  // read options
+  serverSideURL?: URL;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
+  // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   pushState?: (url: URL) => void;
   replaceState?: (url: URL) => void;
   enableSetInitialSearchParam?: boolean;
-  onError?: (error: unknown) => void;
-  serverSideURL?: URL;
+  // build-only options
   useURL?: () => URL;
 }
 ```
@@ -371,17 +374,19 @@ interface BuildUseSearchParamState<TVal> {
 
 ```ts
 interface UseSearchParamStateOptions<TVal> {
+  onError?: (error: unknown) => void;
+  // read options
+  serverSideURL?: URL;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
+  // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   pushState?: (url: URL) => void;
   replaceState?: (url: URL) => void;
   enableSetInitialSearchParam?: boolean;
-  onError?: (error: unknown) => void;
-  serverSideURL?: URL;
 }
 ```
 
@@ -389,11 +394,13 @@ interface UseSearchParamStateOptions<TVal> {
 
 ```ts
 interface BuildGetSearchParamOptions<TVal> {
+  onError?: (error: unknown) => void;
+  // read options
+  serverSideURL?: URL;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
-  onError?: (error: unknown) => void;
-  serverSideURL?: URL;
+  // build-only options
   getURL: () => URL;
 }
 ```
@@ -402,11 +409,12 @@ interface BuildGetSearchParamOptions<TVal> {
 
 ```ts
 interface GetSearchParamOptions<TVal> {
+  onError?: (error: unknown) => void;
+  // read options
+  serverSideURL?: URL;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
-  onError?: (error: unknown) => void;
-  serverSideURL?: URL;
 }
 ```
 
@@ -414,14 +422,16 @@ interface GetSearchParamOptions<TVal> {
 
 ```ts
 interface BuildSetSearchParamOptions<TVal> {
+  onError?: (error: unknown) => void;
+  // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   pushState?: (url: URL) => void;
   replaceState?: (url: URL) => void;
-  onError?: (error: unknown) => void;
-  getURL?: () => URL;
   replace?: boolean;
+  // build-only options
+  getURL?: () => URL;
 }
 ```
 
@@ -429,12 +439,13 @@ interface BuildSetSearchParamOptions<TVal> {
 
 ```ts
 interface SetSearchParamOptions<TVal> {
+  onError?: (error: unknown) => void;
+  // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   pushState?: (url: URL) => void;
   replaceState?: (url: URL) => void;
-  onError?: (error: unknown) => void;
   replace?: boolean;
 }
 ```
