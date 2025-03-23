@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "use-sync-external-store/shim";
 // Structure this as a function so that the history monkeypatching only runs when explicitly
 // calling `buildUseURL`. When only importing `buildUseURL` from this file, the monkeypatching
 // won't occur.
-function buildUseURL() {
+function buildUseURLSearchParams() {
   const customEventNames = ["pushState", "replaceState"] as const;
   const nativeEventNames = ["popstate", "hashchange"] as const;
   const eventNames = [...nativeEventNames, ...customEventNames] as const;
@@ -37,16 +37,16 @@ function buildUseURL() {
     };
   };
 
-  const getSnapshot = () => window.location.href;
+  const getSnapshot = () => window.location.search;
 
-  return function useURL() {
-    const href = useSyncExternalStore(
+  return function useSearchParams() {
+    const searchString = useSyncExternalStore(
       subscribeToEventUpdates,
       getSnapshot,
       getSnapshot,
     );
 
-    return new URL(href);
+    return new URLSearchParams(searchString);
   };
 }
-export { buildUseURL };
+export { buildUseURLSearchParams };

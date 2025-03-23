@@ -21,7 +21,6 @@ A hook to synchronize React state with URL search params.
 
 ```tsx
 import { useSearchParamState } from "use-search-param-state";
-import { useLocation } from "react-router";
 
 function Demo() {
   const [counterState, setCounterState] = useSearchParamState("counter", 0);
@@ -49,9 +48,9 @@ function Demo() {
 
 ## Explanation
 
-On the first render, `useSearchParamState` will read from the `counter` URL search param. The `counter` search param is read using the return value of the `useURL` hook.
+On the first render, `useSearchParamState` will read from the `counter` URL search param. The `counter` search param is read using the return value of the `useURLSearchParams` hook.
 
-If the `window` object is `undefined` (i.e we're on the server), `useSearchParamState` will use the `serverSideURL` option. If `serverSideURL` is also not provided, `counterState` will be returned initial state (i.e. `0`).
+If the `window` object is `undefined` (i.e on the server), `useSearchParamState` will use the `serverSideURLSearchParams` option. If `serverSideURLSearchParams` is also not provided, `counterState` will be returned initial state (i.e. `0`).
 
 If the `counter` search param does not exist (i.e. `URLSearchParams.get` returns `null`), `counterState` will be returned as the initial state, and the `counter` search param will be set to the initial state using the `stringify` option. If `enableSetInitialSearchParam` is set to `false`, the `counter` search param will not be set.
 
@@ -69,6 +68,26 @@ If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, t
 
 If `stringify` or `pushState`/`replaceState` throw an error, `onError` will be called and the URL will not be set.
 
+## Exports
+
+```ts
+import {
+  buildUseSearchParamState,
+  useSearchParamState,
+  buildGetSearchParam,
+  getSearchParam,
+  buildSetSearchParam,
+  setSearchParam,
+  BuildUseSearchParamStateOptions,
+  UseSearchParamStateOptions,
+  BuildGetSearchParamOptions,
+  GetSearchParamOptions,
+  BuildSetSearchParamOptions,
+  SetSearchParamOptions,
+} from "use-search-param-state";
+import { useURLSearchParams } from "use-search-param-state/use-url-search-params";
+```
+
 ## `useSearchParamState` vs `getSearchParam`/`setSearchParam`
 
 `use-search-param-state` exports three main utilities: `useSearchParamState`, `getSearchParam`, and `setSearchParam`.
@@ -76,26 +95,6 @@ If `stringify` or `pushState`/`replaceState` throw an error, `onError` will be c
 The primary difference between `useSearchParamState` and `getSearchParam`/`setSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam`/`setSearchParam` are functions. Because of this difference, `useSearchParamState` is able to react to URL changes and always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. Similarly, `getSearchParam` will not force `getSearchParam` to re-evaluate.
 
 In React components, prefer to use `useSearchParamState`. When the search param needs to be read or set outside React, `getSearchParam`/`setSearchParam` are hook-less alternatives with the same API.
-
-## Exports
-
-```ts
-import {
-  buildUseSearchParamState,
-  BuildUseSearchParamStateOptions,
-  useSearchParamState,
-  UseSearchParamStateOptions,
-  buildGetSearchParam,
-  BuildGetSearchParamOptions,
-  getSearchParam,
-  GetSearchParamOptions,
-  buildSetSearchParam,
-  BuildSetSearchParamOptions,
-  setSearchParam,
-  SetSearchParamOptions,
-} from "use-search-param-state";
-import { useURL } from "use-search-param-state/use-url";
-```
 
 ## All options
 
@@ -120,18 +119,19 @@ interface AllOptions<TVal> {
   onError?: (error: unknown) => void;
 
   /**
-   * When passed, `serverSideURL` will be used when `window` is `undefined` to access the
-   * URL search param. This is useful for generating content on the server, i.e. with
-   * Next.js or Remix.
+   * When passed, `serverSideURLSearchParams` will be used when `window` is `undefined` to
+   * access the URL search param. This is useful for generating content on the server,
+   * i.e. with Next.js or Remix.
    *
-   * `serverSideURL` has no default.
+   * `serverSideURLSearchParams` has no default.
    *
    * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not
    * `buildUseSearchParamState`/`buildGetSearchParam`.
    *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
+   * object for more info.
    */
-  serverSideURL?: URL;
+  serverSideURLSearchParams?: URLSearchParams;
 
   /**
    * `sanitize` defaults to the following function:
@@ -147,7 +147,7 @@ interface AllOptions<TVal> {
    * If an error is thrown, `onError` is called and `useSearchParamState` returns the
    * default state. If using `getSearchParam`, `null` is returned.
    *
-   * @param `unsanitized` The raw string pulled from the searchParams search param.
+   * @param `unsanitized` The raw string pulled from the URL search param.
    * @returns The sanitized string.
    */
   sanitize?: (unsanitized: string) => string;
@@ -230,9 +230,8 @@ interface AllOptions<TVal> {
    *
    * `deleteEmptySearchParam` can be passed to both `useSearchParamState` and
    * `buildUseSearchParamState`. If `deleteEmptySearchParam` is passed to both, only the
-   * option passed to `useSearchParamState` is respected.
-   *
-   * The same applies to `setSearchParam` and `buildSetSearchParam`.
+   * option passed to `useSearchParamState` is respected. The same applies to
+   * `setSearchParam` and `buildSetSearchParam`.
    */
   deleteEmptySearchParam?: boolean;
 
@@ -266,27 +265,37 @@ interface AllOptions<TVal> {
    * `pushState` defaults to the following function:
    *
    * ```ts
-   * export function defaultPushState(url: URL) {
-   *   window.history.pushState({}, "", url);
-   * }
+   * function defaultPushState(urlSearchParams: URLSearchParams) {
+   *  const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
+   *  window.history.pushState(
+   *    {},
+   *    "",
+   *    `${maybeQuestionMark}${urlSearchParams.toString()}`,
+   *  );
+   *}
    * ```
    *
    * `pushState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`.
    * If `pushState` is passed to both, only the option passed to `useSearchParamState` is
    * respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
-   * @param `url` The `url` to set as the URL when calling the `setState` function
+   * @param `urlSearchParams` The `urlSearchParams` to set
    * returned by `useSearchParamState`.
    * @returns
    */
-  pushState?: (url: URL) => void;
+  pushState?: (urlSearchParams: URLSearchParams) => void;
 
   /**
    * `replaceState` defaults to the following function:
    *
    * ```ts
-   * export function defaultReplaceState(url: URL) {
-   *   window.history.replaceState({}, "", url);
+   * function defaultReplaceState(urlSearchParams: URLSearchParams) {
+   *   const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
+   *   window.history.replaceState(
+   *     {},
+   *     "",
+   *     `${maybeQuestionMark}${urlSearchParams.toString()}`,
+   *   );
    * }
    * ```
    *
@@ -294,11 +303,11 @@ interface AllOptions<TVal> {
    * If `replaceState` is passed to both, only the option passed to `useSearchParamState`
    * is respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
-   * @param `url` The `url` to set as the URL when calling the `setState` function
+   * @param `urlSearchParams` The `urlSearchParams` to set
    * returned by `useSearchParamState` with the `replace` option as `true`.
    * @returns
    */
-  replaceState?: (url: URL) => void;
+  replaceState?: (urlSearchParams: URLSearchParams) => void;
 
   /**
    * If the search param state resolves to `null`, the URL is replaced with the search
@@ -316,36 +325,46 @@ interface AllOptions<TVal> {
    * If `true`, when setting the search param, the updated URL will replace the top item
    * in the history stack instead of pushing to it.
    *
-   * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState) for more info.
-   *
+   * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState)
+   * for more info.
    */
   replace?: boolean;
 
   /**
-   * A React hook to return the current URL. This hook is expected to re-render when the URL
-   * changes.
+   * A React hook to return the current URL. This hook is expected to re-render when the
+   * URL changes.
    *
-   * The hook to pass will depend on your routing library. A basic `useURL` hook is
-   * exported by `use-search-param-state/use-url` for your convenience.
+   * The hook to pass will depend on your routing library. A basic `useURLSearchParams`
+   * hook is exported by `use-search-param-state/use-url-search-params` for your
+   * convenience.
    *
-   * `useURL` defaults to the `useURL` hook exported at `'use-search-param-state/use-url'`
+   * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
+   * `'use-search-param-state/use-url-search-params'`
    *
-   * `useURL` can only be passed to `buildUseSearchParamState`, not `useSearchParamState`.
+   * `useURLSearchParams` can only be passed to `buildUseSearchParamState`, not
+   * `useSearchParamState`.
    *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
+   * object for more info.
    */
-  useURL?: () => URL;
+  useURLSearchParams?: () => URLSearchParams;
 
   /**
    * A function to return the current URL object.
    *
-   * `getURL` is required and has no default.
+   * `getURLSearchParams` defaults to the following function
    *
-   * `getURL` can only be passed to `buildGetSearchParam`, not `getSearchParam`.
+   * ```ts
+   * const defaultGetURLSearchParams = () => new URLSearchParams(window.location.search);
+   * ```
    *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
+   * `getURLSearchParams` can only be passed to `buildGetSearchParam` and
+   * `buildSetSearchParam`, not `getSearchParam` nor `setSearchParam`.
+   *
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
+   * object for more info.
    */
-  getURL?: () => URL;
+  getURLSearchParams?: () => URLSearchParams;
 }
 ````
 
@@ -355,18 +374,18 @@ interface AllOptions<TVal> {
 interface BuildUseSearchParamState<TVal> {
   onError?: (error: unknown) => void;
   // read options
-  serverSideURL?: URL;
+  serverSideURLSearchParams?: URLSearchParams;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  pushState?: (url: URL) => void;
-  replaceState?: (url: URL) => void;
+  pushState?: (urlSearchParams: URLSearchParams) => void;
+  replaceState?: (urlSearchParams: URLSearchParams) => void;
   enableSetInitialSearchParam?: boolean;
   // build-only options
-  useURL?: () => URL;
+  useURLSearchParams?: () => URLSearchParams;
 }
 ```
 
@@ -376,7 +395,7 @@ interface BuildUseSearchParamState<TVal> {
 interface UseSearchParamStateOptions<TVal> {
   onError?: (error: unknown) => void;
   // read options
-  serverSideURL?: URL;
+  serverSideURLSearchParams?: URLSearchParams;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
@@ -384,8 +403,8 @@ interface UseSearchParamStateOptions<TVal> {
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  pushState?: (url: URL) => void;
-  replaceState?: (url: URL) => void;
+  pushState?: (urlSearchParams: URLSearchParams) => void;
+  replaceState?: (urlSearchParams: URLSearchParams) => void;
   enableSetInitialSearchParam?: boolean;
 }
 ```
@@ -396,12 +415,12 @@ interface UseSearchParamStateOptions<TVal> {
 interface BuildGetSearchParamOptions<TVal> {
   onError?: (error: unknown) => void;
   // read options
-  serverSideURL?: URL;
+  serverSideURLSearchParams?: URLSearchParams;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
   // build-only options
-  getURL?: () => URL;
+  getURLSearchParams?: () => URLSearchParams;
 }
 ```
 
@@ -411,7 +430,7 @@ interface BuildGetSearchParamOptions<TVal> {
 interface GetSearchParamOptions<TVal> {
   onError?: (error: unknown) => void;
   // read options
-  serverSideURL?: URL;
+  serverSideURLSearchParams?: URLSearchParams;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
@@ -427,11 +446,11 @@ interface BuildSetSearchParamOptions<TVal> {
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  pushState?: (url: URL) => void;
-  replaceState?: (url: URL) => void;
+  pushState?: (urlSearchParams: URLSearchParams) => void;
+  replaceState?: (urlSearchParams: URLSearchParams) => void;
   replace?: boolean;
   // build-only options
-  getURL?: () => URL;
+  getURLSearchParams?: () => URLSearchParams;
 }
 ```
 
@@ -444,8 +463,10 @@ interface SetSearchParamOptions<TVal> {
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  pushState?: (url: URL) => void;
-  replaceState?: (url: URL) => void;
+  pushState?: (urlSearchParams: URLSearchParams) => void;
+  replaceState?: (urlSearchParams: URLSearchParams) => void;
   replace?: boolean;
 }
 ```
+
+## Recipes
