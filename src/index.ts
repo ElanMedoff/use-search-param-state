@@ -251,7 +251,7 @@ type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
   WriteOptions<TVal>;
 type BuildGetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadBuildOptions<TVal> & {
-    getURL: Options<TVal>["getURL"];
+    getURL?: Options<TVal>["getURL"];
   };
 
 type GetSearchParamOptions<TVal> = CommonOptions<TVal> & ReadLocalOptions<TVal>;
