@@ -20,16 +20,8 @@ A hook to synchronize React state with URL search params.
 ## Basic usage
 
 ```tsx
-import { buildUseSearchParamState } from "use-search-param-state";
-import { useLocation } from "react-router"; // or any hook from your routing library that can be used to create a URL object
-// import { useURL } from "use-search-param-state/use-url"; // use-search-param-state exports its own `useURL` hook for your convenience
-
-function useUrl() {
-  const location = useLocation();
-  return new URL(location.href);
-}
-
-export const useSearchParamState = buildUseSearchParamState({ useUrl });
+import { useSearchParamState } from "use-search-param-state";
+import { useLocation } from "react-router";
 
 function Demo() {
   const [counterState, setCounterState] = useSearchParamState("counter", 0);
@@ -40,16 +32,9 @@ or
 
 ```tsx
 import { buildUseSearchParamState } from "use-search-param-state";
-import { useLocation } from "react-router";
 import { z } from "zod";
 
-function useUrl() {
-  const location = useLocation();
-  return new URL(location.href);
-}
-
 export const useSearchParamState = buildUseSearchParamState({
-  useUrl,
   sanitize: yourSanitizer,
 });
 
@@ -83,30 +68,33 @@ If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, t
 
 If `stringify` or `pushState`/`replaceState` throw an error, `onError` will be called and the URL will not be set.
 
-## `useSearchParamState` vs `getSearchParam`
+## `useSearchParamState` vs `getSearchParam`/`setSearchParam`
 
-`use-search-param-state` exports two main utilities: `buildUseSearchParamState` and `buildGetSearchParam`, which are used to create `useSearchParamState` and `getSearchParam` - `getSearchParam` is also exported, but that's just the return value of `buildGetSearchParam` with no options passed.
+`use-search-param-state` exports three main utilities: `useSearchParamState`, `getSearchParam`, and `setSearchParam`.
 
-The primary difference between `useSearchParamState` and `getSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam` is a function. Because of this difference, `useSearchParamState` is able to react to URL changes and always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called.
+The primary difference between `useSearchParamState` and `getSearchParam`/`setSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam`/`setSearchParam` are functions. Because of this difference, `useSearchParamState` is able to react to URL changes and always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. Similarly, `getSearchParam` will not force `getSearchParam` to re-evaluate.
 
-In React components, prefer to use `useSearchParamState`. When the search param needs to be read outside React, `getSearchParam` is a hook-less alternative with the same API.
+In React components, prefer to use `useSearchParamState`. When the search param needs to be read or set outside React, `getSearchParam`/`setSearchParam` are hook-less alternatives with the same API.
 
 ## Exports
 
 ```ts
 import {
   buildUseSearchParamState,
-  buildGetSearchParam,
-  getSearchParam,
-  UseSearchParamStateOptions,
   BuildUseSearchParamStateOptions,
-  GetSearchParamOptions,
+  useSearchParamState,
+  UseSearchParamStateOptions,
+  buildGetSearchParam,
   BuildGetSearchParamOptions,
+  getSearchParam,
+  GetSearchParamOptions,
+  buildSetSearchParam,
+  BuildSetSearchParamOptions,
+  setSearchParam,
+  SetSearchParamOptions,
 } from "use-search-param-state";
 import { useURL } from "use-search-param-state/use-url";
 ```
-
-Note that `use-search-param-state` does not export `useSearchParamState` directly - it must be created with `buildUseSearchParamState`, which itself requires an option of `useURL`.
 
 ## All options
 
@@ -119,7 +107,7 @@ interface AllOptions<TVal> {
    * const defaultSanitize = (unsanitized: string) => unsanitized;
    * ```
    *
-   * `sanitize` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `sanitize` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies for `getSearchParam` and `buildGetSearchParam`.
+   * `sanitize` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `sanitize` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `getSearchParam` and `buildGetSearchParam`.
    *
    * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state. If using `getSearchParam`, `null` is returned.
    *
@@ -145,7 +133,7 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `parse` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `parse` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies for `getSearchParam` and `buildGetSearchParam`.
+   * `parse` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `parse` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `getSearchParam` and `buildGetSearchParam`.
    *
    * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state. If using `getSearchParam`, `null` is returned.
    *
@@ -183,7 +171,7 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `stringify` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `stringify` is passed to both, only the option passed to `useSearchParamState` is respected.
+   * `stringify` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `stringify` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `setSearchParam` and `buildSetSearchParam`
    *
    * @param `valToStringify` The search param to stringify before setting it in the URL.
    * @returns The stringified search param.
@@ -191,16 +179,16 @@ interface AllOptions<TVal> {
   stringify?: (valToStringify: TVal) => string;
 
   /**
-   * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   * When setting the search param, if `deleteEmptySearchParam` is set to `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    *
    * `deleteEmptySearchParam` defaults to `false`.
    *
-   * `deleteEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `deleteEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is respected.
+   * `deleteEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `deleteEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    */
   deleteEmptySearchParam?: boolean;
 
   /**
-   * When calling the `setState` function returned by `useSearchParamState`, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
+   * When setting the search param, if `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
    *
    * `isEmptySearchParam` defaults to the following function:
    *
@@ -214,7 +202,7 @@ interface AllOptions<TVal> {
    *}
    *```
 
-   * `isEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `isEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is respected.
+   * `isEmptySearchParam` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `isEmptySearchParam` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
    * @param `searchParamVal` When setting the state, the new state is passed as `searchParamVal`.
    * @returns A boolean.
@@ -230,7 +218,7 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `pushState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `pushState` is passed to both, only the option passed to `useSearchParamState` is respected.
+   * `pushState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `pushState` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
    * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState`.
    * @returns
@@ -246,7 +234,7 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `replaceState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `replaceState` is passed to both, only the option passed to `useSearchParamState` is respected.
+   * `replaceState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `replaceState` is passed to both, only the option passed to `useSearchParamState` is respected. The same applies to `setSearchParam` and `buildSetSearchParam`.
    *
    * @param `url` The `url` to set as the URL when calling the `setState` function returned by `useSearchParamState` with the `replace` option as `true`.
    * @returns
@@ -271,7 +259,7 @@ interface AllOptions<TVal> {
    * }
    * ```
    *
-   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `onError` is passed to both, both `onError` functions are called. The same applies for `getSearchParam` and `buildGetSearchParam`.
+   * `onError` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `onError` is passed to both, both `onError` functions are called. The same applies to `getSearchParam`,`buildGetSearchParam`, `setSearchParam`, and `buildSetSearchParam`.
    *
    * @param `error` The error caught in one of `try` `catch` blocks.
    * @returns
@@ -290,17 +278,25 @@ interface AllOptions<TVal> {
   serverSideURL?: URL;
 
   /**
+   * If `true`, when setting the search param, the updated URL will replace the top item in the history stack instead of pushing to it.
+   *
+   * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState) for more info.
+   *
+   */
+  replace?: boolean;
+
+  /**
    * A React hook to return the current URL. This hook is expected to re-render when the URL changes.
    *
    * The hook to pass will depend on your routing library. A basic `useURL` hook is exported by `use-search-param-state/use-url` for your convenience.
    *
-   * `useURL` is required and has no default.
+   * `useURL` defaults to the `useURL` hook exported at `'use-search-param-state/use-url'`
    *
    * `useURL` can only be passed to `buildUseSearchParamState`, not `useSearchParamState`.
    *
    * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
    */
-  useURL: () => URL;
+  useURL?: () => URL;
 
   /**
    * A function to return the current URL object.
@@ -329,7 +325,7 @@ interface BuildUseSearchParamState<TVal> {
   enableSetInitialSearchParam?: boolean;
   onError?: (error: unknown) => void;
   serverSideURL?: URL;
-  useURL: () => URL;
+  useURL?: () => URL;
 }
 ```
 
@@ -373,5 +369,34 @@ interface GetSearchParamOptions<TVal> {
   validate?: (unvalidated: unknown) => TVal;
   onError?: (error: unknown) => void;
   serverSideURL?: URL;
+}
+```
+
+## `buildSetSearchParam` options
+
+```ts
+interface BuildSetSearchParamOptions<TVal> {
+  stringify?: (valToStringify: TVal) => string;
+  deleteEmptySearchParam?: boolean;
+  isEmptySearchParam?: (searchParamVal: TVal) => boolean;
+  pushState?: (url: URL) => void;
+  replaceState?: (url: URL) => void;
+  onError?: (error: unknown) => void;
+  getURL?: () => URL;
+  replace?: boolean;
+}
+```
+
+## `setSearchParam` options
+
+```ts
+interface SetSearchParamOptions<TVal> {
+  stringify?: (valToStringify: TVal) => string;
+  deleteEmptySearchParam?: boolean;
+  isEmptySearchParam?: (searchParamVal: TVal) => boolean;
+  pushState?: (url: URL) => void;
+  replaceState?: (url: URL) => void;
+  onError?: (error: unknown) => void;
+  replace?: boolean;
 }
 ```
