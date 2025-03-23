@@ -83,7 +83,24 @@ However, if `stringify` or `pushState`/`replaceState` throw an error, `onError` 
 
 ## `useSearchParamState` vs `getSearchParam`
 
-`use-search-param-state` exports two main utilities: `buildUseSearchParamState` and `buildGetSearchParam`, which are used to create `useSearchParamState` and `getSearchParam`. The primary difference between `useSearchParamState` and `getSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam` is a simple function. As a result, `useSearchParamState` is able to react to URL changes to always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. In React components, prefer to use `useSearchParamState`, while outside React, `getSearchParam` is a great alternative.
+`use-search-param-state` exports two main utilities: `buildUseSearchParamState` and `buildGetSearchParam`, which are used to create `useSearchParamState` and `getSearchParam`. The primary difference between `useSearchParamState` and `getSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam` is a function: `useSearchParamState` is able to react to URL changes to always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. In React components, prefer to use `useSearchParamState`, while outside React, `getSearchParam` is a great alternative.
+
+## Exports
+
+```ts
+import {
+  buildUseSearchParamState,
+  buildGetSearchParam,
+  getSearchParam,
+  UseSearchParamStateOptions,
+  BuildUseSearchParamStateOptions,
+  GetSearchParamOptions,
+  BuildGetSearchParamOptions,
+} from "use-search-param-state";
+import { useURL } from "use-search-param-state/use-url";
+```
+
+Note that `use-search-param-state` does not export `useSearchParamState` directly - it must be created with `buildUseSearchParamState`, which itself requires an option of `useURL`.
 
 ## All options
 
