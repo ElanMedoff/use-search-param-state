@@ -1,8 +1,15 @@
 import { act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react-hooks";
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { buildUseSearchParamState } from "./index";
-import type { BuildUseSearchParamStateOptions } from "./index";
+import {
+  buildGetSearchParam,
+  buildUseSearchParamState,
+  getSearchParam,
+} from "./index";
+import type {
+  BuildGetSearchParamOptions,
+  BuildUseSearchParamStateOptions,
+} from "./index";
 import * as helpers from "./helpers";
 import { z } from "zod";
 
@@ -715,6 +722,251 @@ describe("useSearchParamState", () => {
       expect(getPushStateURLString()).not.toBe(
         "https://elanmed.dev/?counter=0",
       );
+    });
+  });
+});
+
+describe("getSearchParam", () => {
+  beforeEach(() => {
+    jest.spyOn(helpers, "isWindowUndefined").mockReturnValue(false);
+  });
+
+  describe("default state", () => {
+    describe("with window undefined", () => {
+      beforeEach(() => {
+        jest.spyOn(helpers, "isWindowUndefined").mockReturnValue(true);
+        jest.spyOn(window, "location", "get").mockImplementation(() => {
+          return { href: "https://elanmed.dev/" } as Location;
+        });
+      });
+
+      it("with a serverSideURL, it should dehydrate the search param", () => {
+        const result = getSearchParam("counter", {
+          serverSideURL: new URL("https://elanmed.dev/?counter=1"),
+        });
+        expect(result).toBe(1);
+      });
+
+      it("without a serverSideURL, it should return null", () => {
+        const result = getSearchParam("counter");
+        expect(result).toBe(null);
+      });
+    });
+
+    it.each([["sanitize"], ["parse"], ["validate"]])(
+      "when %s errors, it should return null",
+      (fnName) => {
+        jest.spyOn(window, "location", "get").mockImplementation(() => {
+          return { href: "https://elanmed.dev/" } as Location;
+        });
+
+        const result = getSearchParam("counter", {
+          [fnName]: () => {
+            throw new Error();
+          },
+        });
+        expect(result).toBe(null);
+      },
+    );
+
+    it("with a search param in the url, it should sanitize, parse, and validate the search param", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return { href: "https://elanmed.dev/?counter=1" } as Location;
+      });
+
+      const result = getSearchParam("counter");
+      expect(result).toBe(1);
+    });
+
+    it("without a search param in the url, it should return null", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return { href: "https://elanmed.dev" } as Location;
+      });
+
+      const result = getSearchParam("counter");
+      expect(result).toBe(null);
+    });
+  });
+
+  describe("local function options", () => {
+    it("when a sanitize option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+        } as Location;
+      });
+
+      const result = getSearchParam("name", {
+        sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
+      });
+      expect(result).toBe("alert('hello, world')");
+      expect(result).not.toBe("<script>alert('hello, world')</script>");
+    });
+
+    it("when a parse option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?name=a_b_c",
+        } as Location;
+      });
+
+      const result = getSearchParam("name", {
+        parse: (unparsed) => unparsed.split("_"),
+      });
+      expect(result).toStrictEqual(["a", "b", "c"]);
+      expect(result).not.toBe("a_b_c");
+    });
+
+    it("when a validate option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?counter=asdf",
+        } as Location;
+      });
+
+      const result = getSearchParam("counter", {
+        validate: z.number().parse,
+      });
+      expect(result).toBe(null);
+    });
+
+    it("when an onError option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?counter=asdf",
+        } as Location;
+      });
+      const onError = jest.fn();
+
+      getSearchParam("counter", {
+        onError,
+        validate: z.number().parse,
+      });
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("build options", () => {
+    it("when a sanitize option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+        } as Location;
+      });
+      const buildOptions: BuildGetSearchParamOptions<unknown> = {
+        sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
+      };
+      const getSearchParam = buildGetSearchParam(buildOptions);
+
+      const result = getSearchParam("name");
+      expect(result).toBe("alert('hello, world')");
+      expect(result).not.toBe("<script>alert('hello, world')</script>");
+    });
+
+    it("when a parse option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?name=a_b_c",
+        } as Location;
+      });
+      const buildOptions: BuildGetSearchParamOptions<unknown> = {
+        parse: (unparsed) => unparsed.split("_"),
+      };
+      const getSearchParam = buildGetSearchParam(buildOptions);
+      const result = getSearchParam("name");
+      expect(result).toStrictEqual(["a", "b", "c"]);
+      expect(result).not.toBe("a_b_c");
+    });
+
+    it("when a getURL option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?counter=1",
+        } as Location;
+      });
+
+      const buildOptions: BuildGetSearchParamOptions<unknown> = {
+        getURL: () => new URL("https://elanmed.dev/?counter=2"),
+      };
+      const getSearchParam = buildGetSearchParam(buildOptions);
+      const result = getSearchParam("counter");
+      expect(result).toStrictEqual(2);
+      expect(result).not.toBe(1);
+    });
+
+    it("when an onError option is passed, it should use it", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?counter=asdf",
+        } as Location;
+      });
+      const onError = jest.fn();
+      const buildOptions = {
+        onError,
+      };
+
+      const getSearchParam = buildGetSearchParam(buildOptions);
+      getSearchParam("counter", { validate: z.number().parse });
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("build options with overriding hook options", () => {
+    it("when a sanitize option is passed, it should use the hook option", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+        } as Location;
+      });
+      const buildOptions: BuildGetSearchParamOptions<unknown> = {
+        sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, "_"),
+      };
+      const getSearchParam = buildGetSearchParam(buildOptions);
+
+      const result = getSearchParam("name", {
+        sanitize: (unsanitized) => unsanitized.replaceAll(/<\/?script>/g, ""),
+      });
+      expect(result).toBe("alert('hello, world')");
+      expect(result).not.toBe("_alert('hello, world')_");
+    });
+
+    it("when a parse option is passed, it should use the hook option", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?name=a_b_c",
+        } as Location;
+      });
+      const buildOptions = {
+        parse: JSON.parse,
+      };
+      const getSearchParam = buildGetSearchParam(buildOptions);
+
+      const result = getSearchParam("name", {
+        parse: (unparsed) => unparsed.split("_"),
+      });
+      expect(result).toStrictEqual(["a", "b", "c"]);
+      expect(result).not.toBe("a_b_c");
+    });
+
+    it("when an onError option is passed, it should use both options", () => {
+      jest.spyOn(window, "location", "get").mockImplementation(() => {
+        return {
+          href: "https://elanmed.dev/?counter=asdf",
+        } as Location;
+      });
+      const localOnError = jest.fn();
+      const buildOnError = jest.fn();
+      const buildOptions = {
+        onError: buildOnError,
+      };
+      const getSearchParam = buildGetSearchParam(buildOptions);
+
+      getSearchParam("counter", {
+        validate: z.number().parse,
+        onError: localOnError,
+      });
+      expect(buildOnError).toHaveBeenCalledTimes(1);
+      expect(localOnError).toHaveBeenCalledTimes(1);
     });
   });
 });

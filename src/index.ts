@@ -11,6 +11,7 @@ import {
   useStableValue,
   useStableCallback,
   defaultReplaceState,
+  defaultGetURL,
 } from "./helpers";
 
 interface Options<TVal> {
@@ -250,12 +251,11 @@ type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
   ReadLocalOptions<TVal> &
   WriteOptions<TVal>;
 type BuildGetSearchParamOptions<TVal> = CommonOptions<TVal> &
-  ReadBuildOptions<TVal>;
-type GetSearchParamOptions<TVal> = CommonOptions<TVal> &
-  ReadLocalOptions<TVal> & {
-    getURL: Options<TVal>["getURL"];
+  ReadBuildOptions<TVal> & {
+    getURL?: Options<TVal>["getURL"];
   };
 
+type GetSearchParamOptions<TVal> = CommonOptions<TVal> & ReadLocalOptions<TVal>;
 function buildUseSearchParamState(
   buildOptions: BuildUseSearchParamStateOptions<unknown>,
 ) {
@@ -461,9 +461,7 @@ function buildGetSearchParam(
      *
      * When an option is passed to both `getSearchParam` and `buildGetSearchParam`, only the option passed to `getSearchParam` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
      */
-    localOptions: GetSearchParamOptions<TVal> = {
-      getURL: () => new URL(window.location.href),
-    },
+    localOptions: GetSearchParamOptions<TVal> = {},
   ) {
     const parse =
       localOptions.parse ??
@@ -477,7 +475,8 @@ function buildGetSearchParam(
       localOptions.validate ?? ((unvalidated: unknown) => unvalidated as TVal);
     const buildOnError = buildOptions.onError ?? defaultOnError;
     const localOnError = localOptions.onError ?? defaultOnError;
-    const { serverSideURL, getURL } = localOptions;
+    const getURL = buildOptions.getURL ?? defaultGetURL;
+    const { serverSideURL } = localOptions;
     const url = getURL();
 
     return _getSearchParamVal({

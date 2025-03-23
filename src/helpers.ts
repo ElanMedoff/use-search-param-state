@@ -59,6 +59,8 @@ export const defaultSanitize = (unsanitized: string) => unsanitized;
 export const defaultValidate = <TVal>(unvalidated: unknown) =>
   unvalidated as TVal;
 
+export const defaultGetURL = () => new URL(window.location.href);
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function defaultOnError(_e: unknown) {
   return;

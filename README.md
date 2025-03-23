@@ -79,7 +79,7 @@ When setting the state using `setCounterState`, the new state is stringified usi
 
 If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
-However, if `stringify` or `pushState` throw an error, `onError` will be called and the URL will not be set.
+However, if `stringify` or `pushState`/`replaceState` throw an error, `onError` will be called and the URL will not be set.
 
 ## `useSearchParamState` vs `getSearchParam`
 
@@ -88,7 +88,7 @@ However, if `stringify` or `pushState` throw an error, `onError` will be called 
 ## All options
 
 ````ts
-interface Options<TVal> {
+interface AllOptions<TVal> {
   /**
    * `sanitize` defaults to the following function:
    *
