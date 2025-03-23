@@ -8,6 +8,22 @@
 <!---->
 <!-- ### Fixed -->
 
+## 3.0.0 - 2025-03-22
+
+### Changed
+
+- (Breaking) When the search param value resolves to `null`, replace the URL with the search param set to stringified initial state.
+- New `enableSetInitialSearchParam` option to control this behavior
+- New `replaceState` option passed to `setState` returned by `useSearchParamState`
+
+- (Breaking) Remove export `useSearchParamState`
+- (Breaking) Required `useURL` option passed to `buildUseSearchParamState`
+- Export a new hook, `useURL` from `'use-search-param-state/use-url'`
+
+- Internal refactor to remove React context
+- New `buildGetSearchParam` to build a non-reactive search param getter function
+- New `getSearchParam` export that's the return value of `buildGetSearchParam` with no options passed
+
 ## 2.0.16 - 2024-06-09
 
 ### Fixed

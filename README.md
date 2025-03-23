@@ -15,6 +15,8 @@ A hook to synchronize React state with URL search params.
     <img src="https://elanmed.dev/npm-packages/use-search-param-state-logo.png" width="500px" />
 </p>
 
+> Docs for version 2.0.13 (the last version before version 3.0.0) can be viewed [here](https://github.com/ElanMedoff/use-search-param-state/tree/7da00161c2caa624456363adc2558b8784369028)
+
 ## Basic usage
 
 ```tsx
