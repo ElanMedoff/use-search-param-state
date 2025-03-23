@@ -61,29 +61,33 @@ function Demo() {
 
 ## Explanation
 
-On the first render, `useSearchParamState` will read from the `counter` URL search param.
+On the first render, `useSearchParamState` will read from the `counter` URL search param. The `counter` search param is read using the return value of the `useURL` hook.
 
-The `counter` search param is read using the return value of the `useURL` hook. If the `window` object is `undefined`, `useSearchParamState` will use the `serverSideURL`. If `serverSideURL` is also not provided, `counterState` will be set to the initial state (i.e. `0`).
+If the `window` object is `undefined` (i.e we're on the server), `useSearchParamState` will use the `serverSideURL` option. If `serverSideURL` is also not provided, `counterState` will be returned initial state (i.e. `0`).
 
-If the `counter` search param does not exist (i.e. `URLSearchParams.get` returns `null`), `counterState` will be set to the initial state, and the `counter` search param will be set to the initial state using the `stringify` option. If `enableSetInitialSearchParam` is set to `false`, the `counter` search param will not be set.
+If the `counter` search param does not exist (i.e. `URLSearchParams.get` returns `null`), `counterState` will be returned as the initial state, and the `counter` search param will be set to the initial state using the `stringify` option. If `enableSetInitialSearchParam` is set to `false`, the `counter` search param will not be set.
 
 Once the `counter` search param is accessed, the raw string is passed to `sanitize`, the output of `sanitize` is passed to `parse`, and finally the output of `parse` is passed to `validate`. Note that `useSearchParamState` aims to return a _parsed_ value, not a _stringified_ value!
 
-If `sanitize`, `parse`, or `validate` throw an error, the `onError` option is called and `counterState` will be set to the initial state.
+If `sanitize`, `parse`, or `validate` throw an error, the `onError` option is called and `counterState` will be returned as the initial state.
 
-If none of `sanitize`, `parse`, and `validate` throw an error, `counterState` is set to the sanitized, parsed, and validated value in the `counter` search param.
+If none of `sanitize`, `parse`, and `validate` throw an error, `counterState` is returned as the sanitized, parsed, and validated value in the `counter` search param.
 
 ---
 
-When setting the state using `setCounterState`, the new state is stringified using the `stringify` option, and the URL is set using the `pushState` option. If `setCounterState` is called with the `replace` option, the `replaceState` option is used instead of the `pushState` option.
+When setting the `counter` search param using `setCounterState`, the new state is stringified with the `stringify` option, and the URL is set using the `pushState` option. If `setCounterState` is called with the `replace` option, the `replaceState` option is used instead of the `pushState` option.
 
 If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
-However, if `stringify` or `pushState`/`replaceState` throw an error, `onError` will be called and the URL will not be set.
+If `stringify` or `pushState`/`replaceState` throw an error, `onError` will be called and the URL will not be set.
 
 ## `useSearchParamState` vs `getSearchParam`
 
-`use-search-param-state` exports two main utilities: `buildUseSearchParamState` and `buildGetSearchParam`, which are used to create `useSearchParamState` and `getSearchParam`. The primary difference between `useSearchParamState` and `getSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam` is a function: `useSearchParamState` is able to react to URL changes to always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. In React components, prefer to use `useSearchParamState`, while outside React, `getSearchParam` is a great alternative.
+`use-search-param-state` exports two main utilities: `buildUseSearchParamState` and `buildGetSearchParam`, which are used to create `useSearchParamState` and `getSearchParam` - `getSearchParam` is also exported, but that's just the return value of `buildGetSearchParam` with no options passed.
+
+The primary difference between `useSearchParamState` and `getSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam` is a function. Because of this difference, `useSearchParamState` is able to react to URL changes and always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called.
+
+In React components, prefer to use `useSearchParamState`. When the search param needs to be read outside React, `getSearchParam` is a hook-less alternative with the same API.
 
 ## Exports
 
