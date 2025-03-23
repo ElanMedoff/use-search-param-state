@@ -66,7 +66,6 @@ interface Options<TVal> {
    * const defaultValidate = <TVal>(unvalidated: unknown) => unvalidated as TVal;
    * ```
    *
-   *
    * `validate` can only be passed to `useSearchParamState`/`getSearchParam`, not `buildUseSearchParamState`/`buildGetSearchParam`.
    *
    * If an error is thrown, `onError` is called and `useSearchParamState` returns the default state. If using `getSearchParam`, `null` is returned.
