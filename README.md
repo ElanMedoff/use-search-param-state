@@ -401,7 +401,7 @@ interface BuildGetSearchParamOptions<TVal> {
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
   // build-only options
-  getURL: () => URL;
+  getURL?: () => URL;
 }
 ```
 
