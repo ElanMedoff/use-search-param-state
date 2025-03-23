@@ -147,7 +147,7 @@ interface Options<TVal> {
    * export function defaultReplaceState(url: URL) {
    *   window.history.replaceState({}, "", url);
    * }
-   *   ```
+   * ```
    *
    * `replaceState` can be passed to both `useSearchParamState` and `buildUseSearchParamState`. If `replaceState` is passed to both, only the option passed to `useSearchParamState` is respected.
    *
@@ -214,7 +214,7 @@ interface Options<TVal> {
    *
    * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object for more info.
    */
-  getURL: () => URL;
+  getURL?: () => URL;
 }
 
 interface CommonOptions<TVal> {
@@ -251,7 +251,7 @@ type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
   WriteOptions<TVal>;
 type BuildGetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadBuildOptions<TVal> & {
-    getURL?: Options<TVal>["getURL"];
+    getURL: Options<TVal>["getURL"];
   };
 
 type GetSearchParamOptions<TVal> = CommonOptions<TVal> & ReadLocalOptions<TVal>;
