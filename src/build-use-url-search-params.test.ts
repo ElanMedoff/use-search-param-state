@@ -1,15 +1,15 @@
 import { act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react-hooks";
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { buildUseURL } from "./build-use-url";
+import { buildUseURLSearchParams } from "./build-use-url-search-params";
 
-describe("useURL", () => {
-  const useURL = buildUseURL();
+describe("useURLSearchParams", () => {
+  const useURLSearchParams = buildUseURLSearchParams();
 
   beforeEach(() => {
     jest.spyOn(window, "location", "get").mockImplementation(() => {
       return {
-        href: "https://elanmed.dev/?counter=1",
+        search: "?counter=1",
       } as Location;
     });
   });
@@ -18,18 +18,18 @@ describe("useURL", () => {
     it.each(["hashchange", "popstate"] as const)(
       "should update the state on the %s event",
       (eventName) => {
-        const { result } = renderHook(() => useURL());
-        expect(result.current.toString()).toBe("https://elanmed.dev?counter=1");
+        const { result } = renderHook(() => useURLSearchParams());
+        expect(result.current.toString()).toBe("counter=1");
 
         jest.spyOn(window, "location", "get").mockImplementation(() => {
           return {
-            href: "https://elanmed.dev/?counter=2",
+            search: "?counter=2",
           } as Location;
         });
         act(() => {
           dispatchEvent(new Event(eventName));
         });
-        expect(result.current.toString()).toBe("https://elanmed.dev?counter=2");
+        expect(result.current.toString()).toBe("counter=2");
       },
     );
   });
@@ -38,18 +38,18 @@ describe("useURL", () => {
     it.each(["pushState", "replaceState"] as const)(
       "should update the state on the %s event",
       (eventName) => {
-        const { result } = renderHook(() => useURL());
-        expect(result.current.toString()).toBe("https://elanmed.dev?counter=1");
+        const { result } = renderHook(() => useURLSearchParams());
+        expect(result.current.toString()).toBe("counter=1");
 
         jest.spyOn(window, "location", "get").mockImplementation(() => {
           return {
-            href: "https://elanmed.dev/?counter=2",
+            search: "?counter=2",
           } as Location;
         });
         act(() => {
           history[eventName](null, "", "");
         });
-        expect(result.current.toString()).toBe("https://elanmed.dev?counter=2");
+        expect(result.current.toString()).toBe("counter=2");
       },
     );
   });

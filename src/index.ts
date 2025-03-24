@@ -11,9 +11,10 @@ import {
   useStableValue,
   useStableCallback,
   defaultReplaceState,
-  defaultGetURL,
+  defaultGetURLSearchParams,
+  useIsFirstRender,
 } from "./helpers";
-import { buildUseURL } from "./build-use-url";
+import { buildUseURLSearchParams } from "./build-use-url-search-params";
 
 interface Options<TVal> {
   /**
@@ -31,16 +32,16 @@ interface Options<TVal> {
   onError?: (error: unknown) => void;
 
   /**
-   * When passed, `serverSideURL` will be used when `window` is `undefined` to
+   * When passed, `serverSideURLSearchParams` will be used when `window` is `undefined` to
    * access the URL search param. This is useful for generating content on the server,
    * i.e. with Next.js or Remix.
    *
-   * `serverSideURL` has no default.
+   * `serverSideURLSearchParams` has no default.
    *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL)
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
    * object for more info.
    */
-  serverSideURL?: URL;
+  serverSideURLSearchParams?: URLSearchParams;
 
   /**
    * `sanitize` defaults to the following function:
@@ -150,31 +151,41 @@ interface Options<TVal> {
    * `pushState` defaults to the following function:
    *
    * ```ts
-   * function defaultPushState(url: URL) {
-   *   window.history.pushState({}, "", url);
-   * }
+   * function defaultPushState(urlSearchParams: URLSearchParams) {
+   *  const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
+   *  window.history.pushState(
+   *    {},
+   *    "",
+   *    `${window.location.pathname}${maybeQuestionMark}${urlSearchParams.toString()}`,
+   *  );
+   *}
    * ```
    *
-   * @param `url` The URL to set
+   * @param `urlSearchParams` The `urlSearchParams` to set
    * returned by `useSearchParamState`.
    * @returns
    */
-  pushState?: (url: URL) => void;
+  pushState?: (urlSearchParams: URLSearchParams) => void;
 
   /**
    * `replaceState` defaults to the following function:
    *
    * ```ts
-   * function defaultReplaceState(url: URL) {
-   *   window.history.replaceState({}, "", url);
+   * function defaultReplaceState(urlSearchParams: URLSearchParams) {
+   *   const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
+   *   window.history.replaceState(
+   *     {},
+   *     "",
+   *     `${window.location.pathname}${maybeQuestionMark}${urlSearchParams.toString()}`,
+   *   );
    * }
    * ```
    *
-   * @param `url` The URL to set
+   * @param `urlSearchParams` The `urlSearchParams` to set
    * returned by `useSearchParamState` with the `replace` option as `true`.
    * @returns
    */
-  replaceState?: (url: URL) => void;
+  replaceState?: (urlSearchParams: URLSearchParams) => void;
 
   /**
    * If the search param state resolves to `null`, the URL is replaced with the search
@@ -197,31 +208,31 @@ interface Options<TVal> {
    * A React hook to return the current URL. This hook is expected to re-render when the
    * URL changes.
    *
-   * The hook to pass will depend on your routing library. A basic `useURL`
+   * The hook to pass will depend on your routing library. A basic `useURLSearchParams`
    * hook is exported by `use-search-param-state/use-url-search-params` for your
    * convenience.
    *
-   * `useURL` defaults to the `useURL` hook exported at
+   * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
    * `'use-search-param-state/use-url-search-params'`
    *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL)
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
    * object for more info.
    */
-  useURL?: () => URL;
+  useURLSearchParams?: () => URLSearchParams;
 
   /**
    * A function to return the current URL object.
    *
-   * `getURL` defaults to the following function
+   * `getURLSearchParams` defaults to the following function
    *
    * ```ts
-   * const defaultGetURL = () => new URL(window.location.href);
+   * const defaultGetURLSearchParams = () => new URLSearchParams(window.location.search);
    * ```
    *
-   * See MDN's documentation on the [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL)
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
    * object for more info.
    */
-  getURL?: () => URL;
+  getURLSearchParams?: () => URLSearchParams;
 }
 
 interface CommonOptions<TVal> {
@@ -232,7 +243,7 @@ interface ReadOptions<TVal> {
   sanitize?: Options<TVal>["sanitize"];
   parse?: Options<TVal>["parse"];
   validate?: Options<TVal>["validate"];
-  serverSideURL?: Options<TVal>["serverSideURL"];
+  serverSideURLSearchParams?: Options<TVal>["serverSideURLSearchParams"];
 }
 
 interface WriteOptions<TVal> {
@@ -246,18 +257,18 @@ interface WriteOptions<TVal> {
 type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
   ReadOptions<TVal> &
   WriteOptions<TVal> & {
-    useURL?: Options<TVal>["useURL"];
+    useURLSearchParams?: Options<TVal>["useURLSearchParams"];
     enableSetInitialSearchParam?: Options<TVal>["enableSetInitialSearchParam"];
   };
 
 type GetSearchParamOptions<TVal> = CommonOptions<TVal> &
   ReadOptions<TVal> & {
-    getURL?: Options<TVal>["getURL"];
+    getURLSearchParams?: Options<TVal>["getURLSearchParams"];
   };
 
 type SetSearchParamOptions<TVal> = CommonOptions<TVal> &
   WriteOptions<TVal> & {
-    getURL?: Options<TVal>["getURL"];
+    getURLSearchParams?: Options<TVal>["getURLSearchParams"];
     replace?: Options<TVal>["replace"];
   };
 
@@ -285,8 +296,10 @@ function useSearchParamState<TVal>(
    */
   options: UseSearchParamStateOptions<TVal> = {},
 ) {
-  const useURL = options.useURL ?? buildUseURL();
-  const url = useURL();
+  const isFirstRender = useIsFirstRender();
+  const useURLSearchParams =
+    options.useURLSearchParams ?? buildUseURLSearchParams();
+  const urlSearchParams = useURLSearchParams();
 
   const stringifyOption = options.stringify ?? defaultStringify;
   const parseOption = options.parse ?? defaultParse;
@@ -299,8 +312,8 @@ function useSearchParamState<TVal>(
   const isEmptySearchParamOption =
     options.isEmptySearchParam ?? defaultIsEmptySearchParam;
   const validateOption = options.validate ?? defaultValidate;
-  const hookOnErrorOption = options.onError ?? defaultOnError;
-  const { serverSideURL } = options;
+  const onErrorOption = options.onError ?? defaultOnError;
+  const { serverSideURLSearchParams } = options;
 
   // We need to return referentially stable values from `useSearchParamState` so the consumer can pass them to dep arrays.
   // This requires wrapping `searchParamVal` in a `useMemo` (since the value may not be a primitive),
@@ -317,21 +330,29 @@ function useSearchParamState<TVal>(
   const sanitize = useStableCallback(sanitizeOption);
   const isEmptySearchParam = useStableCallback(isEmptySearchParamOption);
   const validate = useStableCallback(validateOption);
-  const hookOnError = useStableCallback(hookOnErrorOption);
+  const onError = useStableCallback(onErrorOption);
   const getInitialState = useStableValue(initialState);
 
   const searchParamVal = React.useMemo(
     () =>
       _getSearchParam<TVal>({
-        url,
+        urlSearchParams,
         sanitize,
-        localOnError: hookOnError,
+        onError,
         searchParam,
         validate,
         parse,
-        serverSideURL,
+        serverSideURLSearchParams,
       }),
-    [hookOnError, parse, sanitize, searchParam, serverSideURL, url, validate],
+    [
+      onError,
+      parse,
+      sanitize,
+      searchParam,
+      serverSideURLSearchParams,
+      urlSearchParams,
+      validate,
+    ],
   );
 
   const defaultedSearchParamVal = searchParamVal ?? getInitialState();
@@ -353,37 +374,38 @@ function useSearchParamState<TVal>(
       _setSearchParam<TVal>({
         searchParamValToSet: valToSet,
         stringify,
-        localOnError: hookOnError,
+        onError,
         searchParam,
         isEmptySearchParam,
         deleteEmptySearchParam,
         replaceState,
         pushState,
         replace,
-        url,
+        urlSearchParams,
       });
     },
     [
       defaultedSearchParamVal,
       deleteEmptySearchParam,
-      hookOnError,
       isEmptySearchParam,
+      onError,
       pushState,
       replaceState,
       searchParam,
       stringify,
-      url,
+      urlSearchParams,
     ],
   );
 
   React.useEffect(() => {
-    // TODO: need more conditions on this
+    if (!isFirstRender) return;
     if (searchParamVal == null && enableSetInitialSearchParam) {
       setSearchParam(getInitialState(), { replace: true });
     }
   }, [
     enableSetInitialSearchParam,
     getInitialState,
+    isFirstRender,
     searchParamVal,
     setSearchParam,
   ]);
@@ -392,19 +414,19 @@ function useSearchParamState<TVal>(
 }
 
 function _maybeGetURL({
-  serverSideURL,
-  url,
+  serverSideURLSearchParams,
+  urlSearchParams,
 }: {
-  serverSideURL: Options<unknown>["serverSideURL"];
-  url: URL;
+  serverSideURLSearchParams: Options<unknown>["serverSideURLSearchParams"];
+  urlSearchParams: URLSearchParams;
 }) {
   if (isWindowUndefined()) {
-    if (serverSideURL instanceof URL) {
-      return serverSideURL;
+    if (serverSideURLSearchParams instanceof URLSearchParams) {
+      return serverSideURLSearchParams;
     }
     return null;
   }
-  return url;
+  return urlSearchParams;
 }
 
 function getSearchParam<TVal>(
@@ -424,19 +446,20 @@ function getSearchParam<TVal>(
   const parse = options.parse ?? defaultParse;
   const sanitize = options.sanitize ?? defaultSanitize;
   const validate = options.validate ?? defaultValidate;
-  const localOnError = options.onError ?? defaultOnError;
-  const getURL = options.getURL ?? defaultGetURL;
-  const { serverSideURL } = options;
-  const url = getURL();
+  const onError = options.onError ?? defaultOnError;
+  const getURLSearchParams =
+    options.getURLSearchParams ?? defaultGetURLSearchParams;
+  const { serverSideURLSearchParams } = options;
+  const urlSearchParams = getURLSearchParams();
 
   return _getSearchParam({
-    serverSideURL,
-    url,
+    serverSideURLSearchParams,
+    urlSearchParams,
     sanitize,
     parse,
     validate,
     searchParam,
-    localOnError,
+    onError,
   });
 }
 
@@ -459,58 +482,58 @@ function setSearchParam<TVal>(
   options: SetSearchParamOptions<TVal> = {},
 ) {
   const stringify = options.stringify ?? defaultStringify;
-  const localOnError = options.onError ?? defaultOnError;
+  const onError = options.onError ?? defaultOnError;
   const isEmptySearchParam =
     options.isEmptySearchParam ?? defaultIsEmptySearchParam;
   const deleteEmptySearchParam = options.deleteEmptySearchParam ?? false;
   const replaceState = options.replaceState ?? defaultReplaceState;
   const pushState = options.pushState ?? defaultPushState;
   const replace = options.replace ?? false;
-  const getURL = defaultGetURL;
-  const url = getURL();
+  const getURLSearchParams = defaultGetURLSearchParams;
+  const urlSearchParams = getURLSearchParams();
 
   _setSearchParam({
     searchParamValToSet,
     stringify,
-    localOnError,
+    onError,
     searchParam,
     isEmptySearchParam,
     deleteEmptySearchParam,
     replaceState,
     pushState,
     replace,
-    url,
+    urlSearchParams,
   });
 }
 
 function _getSearchParam<TVal>({
-  url,
+  urlSearchParams,
   searchParam,
-  serverSideURL,
+  serverSideURLSearchParams,
   sanitize,
   parse,
   validate,
-  localOnError,
+  onError,
 }: {
   searchParam: string;
-  url: URL;
-  serverSideURL: Options<TVal>["serverSideURL"];
+  urlSearchParams: URLSearchParams;
+  serverSideURLSearchParams: Options<TVal>["serverSideURLSearchParams"];
   sanitize: Required<Options<TVal>>["sanitize"];
   parse: Required<Options<TVal>>["parse"];
   validate: Required<Options<TVal>>["validate"];
-  localOnError: Required<Options<TVal>>["onError"];
+  onError: Required<Options<TVal>>["onError"];
 }) {
   try {
-    const maybeURL = _maybeGetURL({
-      serverSideURL,
-      url,
+    const maybeURLSearchParams = _maybeGetURL({
+      serverSideURLSearchParams,
+      urlSearchParams,
     });
 
-    if (maybeURL === null) {
+    if (maybeURLSearchParams === null) {
       return null;
     }
 
-    const rawSearchParamVal = maybeURL.searchParams.get(searchParam);
+    const rawSearchParamVal = maybeURLSearchParams.get(searchParam);
     if (rawSearchParamVal === null) {
       return null;
     }
@@ -521,7 +544,7 @@ function _getSearchParam<TVal>({
 
     return validated;
   } catch (error) {
-    localOnError(error);
+    onError(error);
     return null;
   }
 }
@@ -530,45 +553,45 @@ function _setSearchParam<TVal>({
   searchParam,
   searchParamValToSet,
   replace,
-  url,
+  urlSearchParams,
   pushState,
   replaceState,
   deleteEmptySearchParam,
   isEmptySearchParam,
-  localOnError,
+  onError,
   stringify,
 }: {
   searchParam: string;
   searchParamValToSet: TVal;
   replace: boolean;
-  url: URL;
+  urlSearchParams: URLSearchParams;
   pushState: Required<Options<TVal>>["pushState"];
   replaceState: Required<Options<TVal>>["replaceState"];
   deleteEmptySearchParam: Required<Options<TVal>>["deleteEmptySearchParam"];
   isEmptySearchParam: Required<Options<TVal>>["isEmptySearchParam"];
-  localOnError: Required<Options<TVal>>["onError"];
+  onError: Required<Options<TVal>>["onError"];
   stringify: Required<Options<TVal>>["stringify"];
 }) {
   const pushOrReplaceState = replace ? replaceState : pushState;
 
   try {
-    if (url === null) {
+    if (urlSearchParams === null) {
       throw new Error(
-        "Invalid URL! This can occur if `useSearchParamState` is running on the server and the `serverSideURL` option isn't passed.",
+        "Invalid URLSearchParams! This can occur if `useSearchParamState` is running on the server and the `serverSideURLSearchParams` option isn't passed.",
       );
     }
 
     if (deleteEmptySearchParam && isEmptySearchParam(searchParamValToSet)) {
-      url.searchParams.delete(searchParam);
-      pushOrReplaceState(url);
+      urlSearchParams.delete(searchParam);
+      pushOrReplaceState(urlSearchParams);
       return;
     }
 
     const stringified = stringify(searchParamValToSet);
-    url.searchParams.set(searchParam, stringified);
-    pushOrReplaceState(url);
+    urlSearchParams.set(searchParam, stringified);
+    pushOrReplaceState(urlSearchParams);
   } catch (error) {
-    localOnError(error);
+    onError(error);
   }
 }
 

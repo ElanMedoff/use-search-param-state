@@ -1,5 +1,15 @@
 import React from "react";
 
+export function useIsFirstRender(): boolean {
+  const [isFirstRender, setIsFirstRender] = React.useState(true);
+
+  React.useEffect(() => {
+    setIsFirstRender(false);
+  }, []);
+
+  return isFirstRender;
+}
+
 export function useStableCallback<TCb extends (...args: any[]) => any>(
   cb: TCb,
 ): TCb {
@@ -46,12 +56,22 @@ export function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
   );
 }
 
-export function defaultPushState(url: URL) {
-  window.history.pushState({}, "", url);
+export function defaultPushState(urlSearchParams: URLSearchParams) {
+  const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
+  window.history.pushState(
+    {},
+    "",
+    `${window.location.pathname}${maybeQuestionmark}${urlSearchParams.toString()}`,
+  );
 }
 
-export function defaultReplaceState(url: URL) {
-  window.history.replaceState({}, "", url);
+export function defaultReplaceState(urlSearchParams: URLSearchParams) {
+  const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
+  window.history.replaceState(
+    {},
+    "",
+    `${window.location.pathname}${maybeQuestionmark}${urlSearchParams.toString()}`,
+  );
 }
 
 export const defaultSanitize = (unsanitized: string) => unsanitized;
@@ -59,7 +79,8 @@ export const defaultSanitize = (unsanitized: string) => unsanitized;
 export const defaultValidate = <TVal>(unvalidated: unknown) =>
   unvalidated as TVal;
 
-export const defaultGetURL = () => new URL(window.location.href);
+export const defaultGetURLSearchParams = () =>
+  new URLSearchParams(window.location.search);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function defaultOnError(_e: unknown) {

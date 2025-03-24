@@ -13,8 +13,8 @@ describe("useSearchParamState", () => {
     if (!Array.isArray(pushStateSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(pushStateSpy.mock.lastCall[0] instanceof URL)) {
-      throw new Error("lastCall[0] is not an instance of URL");
+    if (!(pushStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+      throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
     return pushStateSpy.mock.lastCall[0].toString();
   }
@@ -23,8 +23,8 @@ describe("useSearchParamState", () => {
     if (!Array.isArray(replaceStateSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(replaceStateSpy.mock.lastCall[0] instanceof URL)) {
-      throw new Error("lastCall[0] is not an instance of URL");
+    if (!(replaceStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+      throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
     return replaceStateSpy.mock.lastCall[0].toString();
   }
@@ -48,22 +48,22 @@ describe("useSearchParamState", () => {
         jest.spyOn(helpers, "isWindowUndefined").mockReturnValue(true);
       });
 
-      it("with a serverSideURL, it should dehydrate the search param", () => {
+      it("with a serverSideURLSearchParams, it should dehydrate the search param", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const { result } = renderHook(() =>
           useSearchParamState("counter", 0, {
-            serverSideURL: new URL("https://elanmed.dev/?counter=1"),
+            serverSideURLSearchParams: new URLSearchParams("?counter=1"),
           }),
         );
         expect(result.current[0]).toBe(1);
       });
 
-      it("without a serverSideURL, it should return the initial state", () => {
+      it("without a serverSideURLSearchParams, it should return the initial state", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -75,7 +75,7 @@ describe("useSearchParamState", () => {
       "when %s errors, it should return the initial state",
       (fnName) => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const { result } = renderHook(() =>
@@ -92,7 +92,7 @@ describe("useSearchParamState", () => {
 
     it("with a search param in the url, it should sanitize, parse, and validate the search param", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?counter=1" } as Location;
+        return { search: "?counter=1" } as Location;
       });
 
       const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -102,16 +102,14 @@ describe("useSearchParamState", () => {
     describe("without a search param in the url", () => {
       it("should return and set the initial state as the search param", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const { result } = renderHook(() => useSearchParamState("counter", 0));
         expect(result.current[0]).toBe(0);
 
         expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(1);
-        expect(getReplaceStateURLString()).toBe(
-          "https://elanmed.dev/?counter=0",
-        );
+        expect(getReplaceStateURLString()).toBe("counter=0");
       });
     });
   });
@@ -120,7 +118,7 @@ describe("useSearchParamState", () => {
     describe("when setting the url succeeds", () => {
       it("should set the state", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -128,12 +126,12 @@ describe("useSearchParamState", () => {
           result.current[1](10);
         });
         expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-        expect(getPushStateURLString()).toBe("https://elanmed.dev/?counter=10");
+        expect(getPushStateURLString()).toBe("counter=10");
       });
 
       it("should not override unrelated search params", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/?name=elan" } as Location;
+          return { search: "?name=elan" } as Location;
         });
 
         const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -141,16 +139,14 @@ describe("useSearchParamState", () => {
           result.current[1](10);
         });
         expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-        expect(getPushStateURLString()).toBe(
-          "https://elanmed.dev/?name=elan&counter=10",
-        );
+        expect(getPushStateURLString()).toBe("name=elan&counter=10");
       });
     });
 
     describe("when setting the url fails", () => {
       it("should not set the state", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const { result } = renderHook(() =>
@@ -169,7 +165,7 @@ describe("useSearchParamState", () => {
 
     it("should accept a setter function", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/" } as Location;
+        return { search: "" } as Location;
       });
 
       const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -178,12 +174,12 @@ describe("useSearchParamState", () => {
         result.current[1]((prev) => prev + 1);
       });
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?counter=1");
+      expect(getPushStateURLString()).toBe("counter=1");
     });
 
     it("should accept a replace option", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?counter=1" } as Location;
+        return { search: "?counter=1" } as Location;
       });
 
       const { result } = renderHook(() => useSearchParamState("counter", 0));
@@ -193,14 +189,14 @@ describe("useSearchParamState", () => {
       });
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
       expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(1);
-      expect(getReplaceStateURLString()).toBe("https://elanmed.dev/?counter=2");
+      expect(getReplaceStateURLString()).toBe("counter=2");
     });
   });
 
   describe("options", () => {
     it("when a stringify option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/" } as Location;
+        return { search: "" } as Location;
       });
 
       const { result } = renderHook(() =>
@@ -211,7 +207,7 @@ describe("useSearchParamState", () => {
       act(() => {
         result.current[1](["a", "b", "c"]);
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=a_b_c");
+      expect(getPushStateURLString()).toBe("name=a_b_c");
       expect(getPushStateURLString()).not.toBe(
         `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
       );
@@ -221,7 +217,7 @@ describe("useSearchParamState", () => {
     it("when a sanitize option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+          search: "?name=<script>alert('hello, world')</script>",
         } as Location;
       });
 
@@ -238,7 +234,7 @@ describe("useSearchParamState", () => {
 
     it("when a parse option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?name=a_b_c" } as Location;
+        return { search: "?name=a_b_c" } as Location;
       });
 
       const { result } = renderHook(() =>
@@ -247,12 +243,12 @@ describe("useSearchParamState", () => {
         }),
       );
       expect(result.current[0]).toStrictEqual(["a", "b", "c"]);
-      expect(result.current[0]).not.toBe("https://elanmed.dev/?a_b_c");
+      expect(result.current[0]).not.toBe("a_b_c");
     });
 
     it("when a validate option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?counter=asdf" } as Location;
+        return { search: "?counter=asdf" } as Location;
       });
 
       const { result } = renderHook(() =>
@@ -265,7 +261,7 @@ describe("useSearchParamState", () => {
 
     it("when a deleteEmptySearchParam option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?name=elan" } as Location;
+        return { search: "?name=elan" } as Location;
       });
 
       const { result } = renderHook(() =>
@@ -276,14 +272,14 @@ describe("useSearchParamState", () => {
       act(() => {
         result.current[1]("");
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/");
-      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/?name=");
+      expect(getPushStateURLString()).toBe("");
+      expect(getPushStateURLString()).not.toBe("name=");
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a isEmptySearchParam option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?name=elan" } as Location;
+        return { search: "?name=elan" } as Location;
       });
 
       const { result } = renderHook(() =>
@@ -295,14 +291,14 @@ describe("useSearchParamState", () => {
       act(() => {
         result.current[1]("");
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=");
-      expect(getPushStateURLString()).not.toBe("https://elanmed.dev");
+      expect(getPushStateURLString()).toBe("name=");
+      expect(getPushStateURLString()).not.toBe("");
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a pushState option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?counter=1" } as Location;
+        return { search: "?counter=1" } as Location;
       });
 
       const pushState = jest.fn();
@@ -320,7 +316,7 @@ describe("useSearchParamState", () => {
 
     it("when a replaceState option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/" } as Location;
+        return { search: "" } as Location;
       });
 
       const replaceState = jest.fn();
@@ -335,7 +331,7 @@ describe("useSearchParamState", () => {
 
     it("when an enableSetInitialSearchParam option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/" } as Location;
+        return { search: "" } as Location;
       });
 
       renderHook(() =>
@@ -348,7 +344,7 @@ describe("useSearchParamState", () => {
 
     it("when an onError option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?counter=asdf" } as Location;
+        return { search: "?counter=asdf" } as Location;
       });
 
       const onError = jest.fn();
@@ -373,18 +369,18 @@ describe("getSearchParam", () => {
       beforeEach(() => {
         jest.spyOn(helpers, "isWindowUndefined").mockReturnValue(true);
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
       });
 
-      it("with a serverSideURL, it should dehydrate the search param", () => {
+      it("with a serverSideURLSearchParams, it should dehydrate the search param", () => {
         const result = getSearchParam("counter", {
-          serverSideURL: new URL("https://elanmed.dev/?counter=1"),
+          serverSideURLSearchParams: new URLSearchParams("?counter=1"),
         });
         expect(result).toBe(1);
       });
 
-      it("without a serverSideURL, it should return null", () => {
+      it("without a serverSideURLSearchParams, it should return null", () => {
         const result = getSearchParam("counter");
         expect(result).toBe(null);
       });
@@ -394,7 +390,7 @@ describe("getSearchParam", () => {
       "when %s errors, it should return null",
       (fnName) => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
-          return { href: "https://elanmed.dev/" } as Location;
+          return { search: "" } as Location;
         });
 
         const result = getSearchParam("counter", {
@@ -408,7 +404,7 @@ describe("getSearchParam", () => {
 
     it("with a search param in the url, it should sanitize, parse, and validate the search param", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/?counter=1" } as Location;
+        return { search: "?counter=1" } as Location;
       });
 
       const result = getSearchParam("counter");
@@ -417,7 +413,7 @@ describe("getSearchParam", () => {
 
     it("without a search param in the url, it should return null", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
-        return { href: "https://elanmed.dev/https://elanmed.dev" } as Location;
+        return { search: "https://elanmed.dev" } as Location;
       });
 
       const result = getSearchParam("counter");
@@ -429,7 +425,7 @@ describe("getSearchParam", () => {
     it("when a sanitize option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?name=<script>alert('hello, world')</script>",
+          search: "?name=<script>alert('hello, world')</script>",
         } as Location;
       });
 
@@ -443,7 +439,7 @@ describe("getSearchParam", () => {
     it("when a parse option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?name=a_b_c",
+          search: "?name=a_b_c",
         } as Location;
       });
 
@@ -451,13 +447,13 @@ describe("getSearchParam", () => {
         parse: (unparsed) => unparsed.split("_"),
       });
       expect(result).toStrictEqual(["a", "b", "c"]);
-      expect(result).not.toBe("https://elanmed.dev/?a_b_c");
+      expect(result).not.toBe("a_b_c");
     });
 
     it("when a validate option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?counter=asdf",
+          search: "?counter=asdf",
         } as Location;
       });
 
@@ -470,7 +466,7 @@ describe("getSearchParam", () => {
     it("when an onError option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?counter=asdf",
+          search: "?counter=asdf",
         } as Location;
       });
       const onError = jest.fn();
@@ -492,8 +488,8 @@ describe("setSearchParam", () => {
     if (!Array.isArray(pushStateSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(pushStateSpy.mock.lastCall[0] instanceof URL)) {
-      throw new Error("lastCall[0] is not an instance of URL");
+    if (!(pushStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+      throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
     return pushStateSpy.mock.lastCall[0].toString();
   }
@@ -502,8 +498,8 @@ describe("setSearchParam", () => {
     if (!Array.isArray(replaceStateSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(replaceStateSpy.mock.lastCall[0] instanceof URL)) {
-      throw new Error("lastCall[0] is not an instance of URL");
+    if (!(replaceStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+      throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
     return replaceStateSpy.mock.lastCall[0].toString();
   }
@@ -525,27 +521,25 @@ describe("setSearchParam", () => {
       it("should set the state", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
           return {
-            href: "https://elanmed.dev/",
+            search: "",
           } as Location;
         });
 
         setSearchParam("counter", 10);
         expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-        expect(getPushStateURLString()).toBe("https://elanmed.dev/?counter=10");
+        expect(getPushStateURLString()).toBe("counter=10");
       });
 
       it("should not override unrelated search params", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
           return {
-            href: "https://elanmed.dev/?name=elan",
+            search: "?name=elan",
           } as Location;
         });
 
         setSearchParam("counter", 10);
         expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
-        expect(getPushStateURLString()).toBe(
-          "https://elanmed.dev/?name=elan&counter=10",
-        );
+        expect(getPushStateURLString()).toBe("name=elan&counter=10");
       });
     });
 
@@ -553,7 +547,7 @@ describe("setSearchParam", () => {
       it("should not set the state", () => {
         jest.spyOn(window, "location", "get").mockImplementation(() => {
           return {
-            href: "https://elanmed.dev/",
+            search: "",
           } as Location;
         });
 
@@ -569,14 +563,14 @@ describe("setSearchParam", () => {
     it("should accept a replace option", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?counter=1",
+          search: "?counter=1",
         } as Location;
       });
 
       setSearchParam("counter", 2, { replace: true });
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
       expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(1);
-      expect(getReplaceStateURLString()).toBe("https://elanmed.dev/?counter=2");
+      expect(getReplaceStateURLString()).toBe("counter=2");
     });
   });
 
@@ -584,14 +578,14 @@ describe("setSearchParam", () => {
     it("when a stringify option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/",
+          search: "",
         } as Location;
       });
 
       setSearchParam("name", ["a", "b", "c"], {
         stringify: (valToStringify) => valToStringify.join("_"),
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=a_b_c");
+      expect(getPushStateURLString()).toBe("name=a_b_c");
       expect(getPushStateURLString()).not.toBe(
         `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
       );
@@ -601,22 +595,22 @@ describe("setSearchParam", () => {
     it("when a deleteEmptySearchParam option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?name=elan",
+          search: "?name=elan",
         } as Location;
       });
 
       setSearchParam("name", "", {
         deleteEmptySearchParam: true,
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/");
-      expect(getPushStateURLString()).not.toBe("https://elanmed.dev/?name=");
+      expect(getPushStateURLString()).toBe("");
+      expect(getPushStateURLString()).not.toBe("name=");
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a isEmptySearchParam option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?name=elan",
+          search: "?name=elan",
         } as Location;
       });
 
@@ -624,15 +618,15 @@ describe("setSearchParam", () => {
         deleteEmptySearchParam: true,
         isEmptySearchParam: (searchParamVal) => searchParamVal === null,
       });
-      expect(getPushStateURLString()).toBe("https://elanmed.dev/?name=");
-      expect(getPushStateURLString()).not.toBe("https://elanmed.dev");
+      expect(getPushStateURLString()).toBe("name=");
+      expect(getPushStateURLString()).not.toBe("");
       expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
     });
 
     it("when a pushState option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/",
+          search: "",
         } as Location;
       });
 
@@ -647,7 +641,7 @@ describe("setSearchParam", () => {
     it("when a replaceState option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/",
+          search: "",
         } as Location;
       });
 
@@ -663,7 +657,7 @@ describe("setSearchParam", () => {
     it("when an onError option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
-          href: "https://elanmed.dev/?counter=asdf",
+          search: "?counter=asdf",
         } as Location;
       });
 
