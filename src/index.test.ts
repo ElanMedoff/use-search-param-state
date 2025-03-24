@@ -6,40 +6,44 @@ import * as helpers from "./helpers";
 import { z } from "zod";
 
 describe("useSearchParamState", () => {
-  let pushStateSpy: jest.SpyInstance;
-  let replaceStateSpy: jest.SpyInstance;
+  let pushURLSearchParamsSpy: jest.SpyInstance;
+  let replaceURLSearchParamsSpy: jest.SpyInstance;
 
   function getPushStateURLString() {
-    if (!Array.isArray(pushStateSpy.mock.lastCall)) {
+    if (!Array.isArray(pushURLSearchParamsSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(pushStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+    if (!(pushURLSearchParamsSpy.mock.lastCall[0] instanceof URLSearchParams)) {
       throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
-    return pushStateSpy.mock.lastCall[0].toString();
+    return pushURLSearchParamsSpy.mock.lastCall[0].toString();
   }
 
   function getReplaceStateURLString() {
-    if (!Array.isArray(replaceStateSpy.mock.lastCall)) {
+    if (!Array.isArray(replaceURLSearchParamsSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(replaceStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+    if (
+      !(replaceURLSearchParamsSpy.mock.lastCall[0] instanceof URLSearchParams)
+    ) {
       throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
-    return replaceStateSpy.mock.lastCall[0].toString();
+    return replaceURLSearchParamsSpy.mock.lastCall[0].toString();
   }
 
   beforeEach(() => {
     jest.spyOn(helpers, "isWindowUndefined").mockReturnValue(false);
-    pushStateSpy = jest.spyOn(helpers, "defaultPushState").mockImplementation();
-    replaceStateSpy = jest
-      .spyOn(helpers, "defaultReplaceState")
+    pushURLSearchParamsSpy = jest
+      .spyOn(helpers, "defaultPushURLSearchParams")
+      .mockImplementation();
+    replaceURLSearchParamsSpy = jest
+      .spyOn(helpers, "defaultReplaceURLSearchParams")
       .mockImplementation();
   });
 
   afterEach(() => {
-    jest.spyOn(helpers, "defaultPushState").mockReset();
-    jest.spyOn(helpers, "defaultReplaceState").mockReset();
+    jest.spyOn(helpers, "defaultPushURLSearchParams").mockReset();
+    jest.spyOn(helpers, "defaultReplaceURLSearchParams").mockReset();
   });
 
   describe("default state", () => {
@@ -86,7 +90,7 @@ describe("useSearchParamState", () => {
           }),
         );
         expect(result.current[0]).toBe(0);
-        expect(helpers.defaultPushState).not.toHaveBeenCalled();
+        expect(helpers.defaultPushURLSearchParams).not.toHaveBeenCalled();
       },
     );
 
@@ -108,7 +112,7 @@ describe("useSearchParamState", () => {
         const { result } = renderHook(() => useSearchParamState("counter", 0));
         expect(result.current[0]).toBe(0);
 
-        expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(1);
+        expect(helpers.defaultReplaceURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getReplaceStateURLString()).toBe("counter=0");
       });
     });
@@ -125,7 +129,7 @@ describe("useSearchParamState", () => {
         act(() => {
           result.current[1](10);
         });
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+        expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getPushStateURLString()).toBe("counter=10");
       });
 
@@ -138,7 +142,7 @@ describe("useSearchParamState", () => {
         act(() => {
           result.current[1](10);
         });
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+        expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getPushStateURLString()).toBe("name=elan&counter=10");
       });
     });
@@ -159,7 +163,7 @@ describe("useSearchParamState", () => {
         act(() => {
           result.current[1](10);
         });
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
+        expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
       });
     });
 
@@ -173,7 +177,7 @@ describe("useSearchParamState", () => {
       act(() => {
         result.current[1]((prev) => prev + 1);
       });
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
       expect(getPushStateURLString()).toBe("counter=1");
     });
 
@@ -187,8 +191,8 @@ describe("useSearchParamState", () => {
       act(() => {
         result.current[1](2, { replace: true });
       });
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
-      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
+      expect(helpers.defaultReplaceURLSearchParams).toHaveBeenCalledTimes(1);
       expect(getReplaceStateURLString()).toBe("counter=2");
     });
   });
@@ -211,7 +215,7 @@ describe("useSearchParamState", () => {
       expect(getPushStateURLString()).not.toBe(
         `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
       );
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
     });
 
     it("when a sanitize option is passed, it should use it", () => {
@@ -274,7 +278,7 @@ describe("useSearchParamState", () => {
       });
       expect(getPushStateURLString()).toBe("");
       expect(getPushStateURLString()).not.toBe("name=");
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
     });
 
     it("when a isEmptySearchParam option is passed, it should use it", () => {
@@ -293,40 +297,40 @@ describe("useSearchParamState", () => {
       });
       expect(getPushStateURLString()).toBe("name=");
       expect(getPushStateURLString()).not.toBe("");
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
     });
 
-    it("when a pushState option is passed, it should use it", () => {
+    it("when a pushURLSearchParams option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return { search: "?counter=1" } as Location;
       });
 
-      const pushState = jest.fn();
+      const pushURLSearchParams = jest.fn();
       const { result } = renderHook(() =>
         useSearchParamState("counter", 0, {
-          pushState,
+          pushURLSearchParams,
         }),
       );
       act(() => {
         result.current[1](1);
       });
-      expect(pushState).toHaveBeenCalledTimes(1);
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
+      expect(pushURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
     });
 
-    it("when a replaceState option is passed, it should use it", () => {
+    it("when a replaceURLSearchParams option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return { search: "" } as Location;
       });
 
-      const replaceState = jest.fn();
+      const replaceURLSearchParams = jest.fn();
       renderHook(() =>
         useSearchParamState("counter", 0, {
-          replaceState,
+          replaceURLSearchParams,
         }),
       );
-      expect(replaceState).toHaveBeenCalledTimes(1);
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
+      expect(replaceURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
     });
 
     it("when an enableSetInitialSearchParam option is passed, it should use it", () => {
@@ -339,7 +343,7 @@ describe("useSearchParamState", () => {
           enableSetInitialSearchParam: false,
         }),
       );
-      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(0);
+      expect(helpers.defaultReplaceURLSearchParams).toHaveBeenCalledTimes(0);
     });
 
     it("when an onError option is passed, it should use it", () => {
@@ -481,39 +485,43 @@ describe("getSearchParam", () => {
 });
 
 describe("setSearchParam", () => {
-  let pushStateSpy: jest.SpyInstance;
-  let replaceStateSpy: jest.SpyInstance;
+  let pushURLSearchParamsSpy: jest.SpyInstance;
+  let replaceURLSearchParamsSpy: jest.SpyInstance;
 
   function getPushStateURLString() {
-    if (!Array.isArray(pushStateSpy.mock.lastCall)) {
+    if (!Array.isArray(pushURLSearchParamsSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(pushStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+    if (!(pushURLSearchParamsSpy.mock.lastCall[0] instanceof URLSearchParams)) {
       throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
-    return pushStateSpy.mock.lastCall[0].toString();
+    return pushURLSearchParamsSpy.mock.lastCall[0].toString();
   }
 
   function getReplaceStateURLString() {
-    if (!Array.isArray(replaceStateSpy.mock.lastCall)) {
+    if (!Array.isArray(replaceURLSearchParamsSpy.mock.lastCall)) {
       throw new Error("lastCall is not an array");
     }
-    if (!(replaceStateSpy.mock.lastCall[0] instanceof URLSearchParams)) {
+    if (
+      !(replaceURLSearchParamsSpy.mock.lastCall[0] instanceof URLSearchParams)
+    ) {
       throw new Error("lastCall[0] is not an instance of URLSearchParams");
     }
-    return replaceStateSpy.mock.lastCall[0].toString();
+    return replaceURLSearchParamsSpy.mock.lastCall[0].toString();
   }
 
   beforeEach(() => {
-    pushStateSpy = jest.spyOn(helpers, "defaultPushState").mockImplementation();
-    replaceStateSpy = jest
-      .spyOn(helpers, "defaultReplaceState")
+    pushURLSearchParamsSpy = jest
+      .spyOn(helpers, "defaultPushURLSearchParams")
+      .mockImplementation();
+    replaceURLSearchParamsSpy = jest
+      .spyOn(helpers, "defaultReplaceURLSearchParams")
       .mockImplementation();
   });
 
   afterEach(() => {
-    jest.spyOn(helpers, "defaultPushState").mockReset();
-    jest.spyOn(helpers, "defaultReplaceState").mockReset();
+    jest.spyOn(helpers, "defaultPushURLSearchParams").mockReset();
+    jest.spyOn(helpers, "defaultReplaceURLSearchParams").mockReset();
   });
 
   describe("setState", () => {
@@ -526,7 +534,7 @@ describe("setSearchParam", () => {
         });
 
         setSearchParam("counter", 10);
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+        expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getPushStateURLString()).toBe("counter=10");
       });
 
@@ -538,7 +546,7 @@ describe("setSearchParam", () => {
         });
 
         setSearchParam("counter", 10);
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+        expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getPushStateURLString()).toBe("name=elan&counter=10");
       });
     });
@@ -556,7 +564,7 @@ describe("setSearchParam", () => {
             throw new Error();
           },
         });
-        expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
+        expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
       });
     });
 
@@ -568,8 +576,8 @@ describe("setSearchParam", () => {
       });
 
       setSearchParam("counter", 2, { replace: true });
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
-      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
+      expect(helpers.defaultReplaceURLSearchParams).toHaveBeenCalledTimes(1);
       expect(getReplaceStateURLString()).toBe("counter=2");
     });
   });
@@ -589,7 +597,7 @@ describe("setSearchParam", () => {
       expect(getPushStateURLString()).not.toBe(
         `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
       );
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
     });
 
     it("when a deleteEmptySearchParam option is passed, it should use it", () => {
@@ -604,7 +612,7 @@ describe("setSearchParam", () => {
       });
       expect(getPushStateURLString()).toBe("");
       expect(getPushStateURLString()).not.toBe("name=");
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
     });
 
     it("when a isEmptySearchParam option is passed, it should use it", () => {
@@ -620,38 +628,38 @@ describe("setSearchParam", () => {
       });
       expect(getPushStateURLString()).toBe("name=");
       expect(getPushStateURLString()).not.toBe("");
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
     });
 
-    it("when a pushState option is passed, it should use it", () => {
+    it("when a pushURLSearchParams option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
           search: "",
         } as Location;
       });
 
-      const pushState = jest.fn();
+      const pushURLSearchParams = jest.fn();
       setSearchParam("counter", 1, {
-        pushState,
+        pushURLSearchParams,
       });
-      expect(pushState).toHaveBeenCalledTimes(1);
-      expect(helpers.defaultPushState).toHaveBeenCalledTimes(0);
+      expect(pushURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
     });
 
-    it("when a replaceState option is passed, it should use it", () => {
+    it("when a replaceURLSearchParams option is passed, it should use it", () => {
       jest.spyOn(window, "location", "get").mockImplementation(() => {
         return {
           search: "",
         } as Location;
       });
 
-      const replaceState = jest.fn();
+      const replaceURLSearchParams = jest.fn();
       setSearchParam("counter", 0, {
-        replaceState,
+        replaceURLSearchParams,
         replace: true,
       });
-      expect(replaceState).toHaveBeenCalledTimes(1);
-      expect(helpers.defaultReplaceState).toHaveBeenCalledTimes(0);
+      expect(replaceURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(helpers.defaultReplaceURLSearchParams).toHaveBeenCalledTimes(0);
     });
 
     it("when an onError option is passed, it should use it", () => {

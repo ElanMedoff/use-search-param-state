@@ -72,11 +72,11 @@ If none of `sanitize`, `parse`, and `validate` throw an error, `counterState` is
 
 ---
 
-When setting the `counter` search param using `setCounterState`, the new state is stringified with the `stringify` option, and the URL is set using the `pushState` option. If `setCounterState` is called with the `replace` option, the `replaceState` option is used instead of the `pushState` option.
+When setting the `counter` search param using `setCounterState`, the new state is stringified with the `stringify` option, and the URL is set using the `pushURLSearchParams` option. If `setCounterState` is called with the `replace` option, the `replaceURLSearchParams` option is used instead of the `pushURLSearchParams` option.
 
 If `deleteEmptySearchParam` is `true` and `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
 
-If `stringify` or `pushState`/`replaceState` throw an error, `onError` will be called and the URL will not be set.
+If `stringify` or `pushURLSearchParams`/`replaceURLSearchParams` throw an error, `onError` will be called and the URL will not be set.
 
 ## Exports
 
@@ -235,10 +235,10 @@ interface AllOptions<TVal> {
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
 
   /**
-   * `pushState` defaults to the following function:
+   * `pushURLSearchParams` defaults to the following function:
    *
    * ```ts
-   * function defaultPushState(urlSearchParams: URLSearchParams) {
+   * function defaultPushURLSearchParams(urlSearchParams: URLSearchParams) {
    *  const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
    *  window.history.pushState(
    *    {},
@@ -252,13 +252,13 @@ interface AllOptions<TVal> {
    * returned by `useSearchParamState`.
    * @returns
    */
-  pushState?: (urlSearchParams: URLSearchParams) => void;
+  pushURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
 
   /**
-   * `replaceState` defaults to the following function:
+   * `replaceURLSearchParams` defaults to the following function:
    *
    * ```ts
-   * function defaultReplaceState(urlSearchParams: URLSearchParams) {
+   * function defaultReplaceURLSearchParams(urlSearchParams: URLSearchParams) {
    *   const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
    *   window.history.replaceState(
    *     {},
@@ -272,7 +272,7 @@ interface AllOptions<TVal> {
    * returned by `useSearchParamState` with the `replace` option as `true`.
    * @returns
    */
-  replaceState?: (urlSearchParams: URLSearchParams) => void;
+  replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
 
   /**
    * If the search param state resolves to `null`, the URL is replaced with the search
@@ -286,7 +286,7 @@ interface AllOptions<TVal> {
    * If `true`, when setting the search param, the updated URL will replace the top item
    * in the history stack instead of pushing to it.
    *
-   * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState)
+   * See MDN's documentation on [replaceURLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceURLSearchParams)
    * for more info.
    */
   replace?: boolean;
@@ -337,8 +337,8 @@ interface UseSearchParamStateOptions<TVal> {
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  pushState?: (urlSearchParams: URLSearchParams) => void;
-  replaceState?: (urlSearchParams: URLSearchParams) => void;
+  pushURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
+  replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
   // hook-only options
   enableSetInitialSearchParam?: boolean;
   useURLSearchParams?: () => URLSearchParams;
@@ -369,8 +369,8 @@ interface SetSearchParamOptions<TVal> {
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
-  pushState?: (urlSearchParams: URLSearchParams) => void;
-  replaceState?: (urlSearchParams: URLSearchParams) => void;
+  pushURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
+  replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
   replace?: boolean;
   // function-only options
   getURLSearchParams?: () => URLSearchParams;

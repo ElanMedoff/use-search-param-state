@@ -56,7 +56,7 @@ export function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
   );
 }
 
-export function defaultPushState(urlSearchParams: URLSearchParams) {
+export function defaultPushURLSearchParams(urlSearchParams: URLSearchParams) {
   const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
   window.history.pushState(
     {},
@@ -65,7 +65,7 @@ export function defaultPushState(urlSearchParams: URLSearchParams) {
   );
 }
 
-export function defaultReplaceState(urlSearchParams: URLSearchParams) {
+export function defaultReplaceURLSearchParams(urlSearchParams: URLSearchParams) {
   const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
   window.history.replaceState(
     {},
