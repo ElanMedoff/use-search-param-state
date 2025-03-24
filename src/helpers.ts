@@ -46,22 +46,12 @@ export function defaultIsEmptySearchParam<TVal>(searchParamVal: TVal) {
   );
 }
 
-export function defaultPushState(urlSearchParams: URLSearchParams) {
-  const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
-  window.history.pushState(
-    {},
-    "",
-    `${maybeQuestionMark}${urlSearchParams.toString()}`,
-  );
+export function defaultPushState(url: URL) {
+  window.history.pushState({}, "", url);
 }
 
-export function defaultReplaceState(urlSearchParams: URLSearchParams) {
-  const maybeQuestionMark = urlSearchParams.toString().length ? "?" : "";
-  window.history.replaceState(
-    {},
-    "",
-    `${maybeQuestionMark}${urlSearchParams.toString()}`,
-  );
+export function defaultReplaceState(url: URL) {
+  window.history.replaceState({}, "", url);
 }
 
 export const defaultSanitize = (unsanitized: string) => unsanitized;
@@ -69,8 +59,7 @@ export const defaultSanitize = (unsanitized: string) => unsanitized;
 export const defaultValidate = <TVal>(unvalidated: unknown) =>
   unvalidated as TVal;
 
-export const defaultGetURLSearchParams = () =>
-  new URLSearchParams(window.location.search);
+export const defaultGetURL = () => new URL(window.location.href);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function defaultOnError(_e: unknown) {

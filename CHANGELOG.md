@@ -12,18 +12,16 @@
 
 ### Changed
 
+- (Breaking) Internal refactor to remove context: `SearchParamStateProvider`
 - (Breaking) When the search param value resolves to `null`, replace the URL with the search param set to stringified initial state.
 - New `enableSetInitialSearchParam` option to control this behavior.
 - New `replaceState` option passed to `setState` returned by `useSearchParamState`.
 - The `serverSideURL: string` option is replaced with `serverSideURLSearchParam: URLSearchParams`
 
-- Internal refactor to remove React context.
-- New `buildGetSearchParam` to build a non-reactive search param getter function.
-- New `getSearchParam` export that's the return value of `buildGetSearchParam` with no options passed.
-- New `buildSetSearchParam` to build a non-reactive search param setter function.
-- New `setSearchParam` export that's the return value of `buildSetSearchParam` with no options passed.
+- New `getSearchParam` function, a non-reactive search param getter.
+- New `setSearchParam` function, a non-reactive search param setter.
 - New option `useURL` to let the user adapt the package for their own routing library.
-- Export a new hook, `useURLSearchParams` from `'use-search-param-state/use-url-search-params'`.
+- Export a new hook, `useURL` from `'use-search-param-state/use-url-search-params'`.
 
 ## 2.0.16 - 2024-06-09
 
