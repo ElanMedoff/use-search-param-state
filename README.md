@@ -328,17 +328,20 @@ interface AllOptions<TVal> {
 ```ts
 interface UseSearchParamStateOptions<TVal> {
   onError?: (error: unknown) => void;
+
   // read options
   serverSideURLSearchParams?: URLSearchParams;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
+
   // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   pushURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
   replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
+
   // hook-only options
   enableSetInitialSearchParam?: boolean;
   useURLSearchParams?: () => URLSearchParams;
@@ -350,11 +353,13 @@ interface UseSearchParamStateOptions<TVal> {
 ```ts
 interface GetSearchParamOptions<TVal> {
   onError?: (error: unknown) => void;
+
   // read options
   serverSideURLSearchParams?: URLSearchParams;
   sanitize?: (unsanitized: string) => string;
   parse?: (unparsed: string) => TVal;
   validate?: (unvalidated: unknown) => TVal;
+
   // function-only options
   getURLSearchParams?: () => URLSearchParams;
 }
@@ -365,22 +370,56 @@ interface GetSearchParamOptions<TVal> {
 ```ts
 interface SetSearchParamOptions<TVal> {
   onError?: (error: unknown) => void;
+
   // write options
   stringify?: (valToStringify: TVal) => string;
   deleteEmptySearchParam?: boolean;
   isEmptySearchParam?: (searchParamVal: TVal) => boolean;
   pushURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
   replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
-  replace?: boolean;
+
   // function-only options
   getURLSearchParams?: () => URLSearchParams;
+  replace?: boolean;
 }
 ```
 
 ## Recipes
 
-### React Router
+### Hooking into React Router
 
 ```ts
+import { useSearchParams } from "react-router";
+import {
+  useSearchParamState as _useSearchParamState,
+  UseSearchParamStateOptions,
+} from "./package/index.ts";
 
+function useURLSearchParams() {
+  const [urlSearchParams] = useSearchParams();
+  return urlSearchParams;
+}
+
+export function useSearchParamState<TVal>(
+  searchParam: string,
+  initialState: TVal,
+  options: UseSearchParamStateOptions<TVal>,
+) {
+  const [, setSearchParams] = useSearchParams();
+
+  function pushState(urlSearchParams: URLSearchParams) {
+    setSearchParams(urlSearchParams);
+  }
+
+  function replaceState(urlSearchParams: URLSearchParams) {
+    setSearchParams(urlSearchParams);
+  }
+
+  return _useSearchParamState(searchParam, initialState, {
+    useURLSearchParams,
+    pushState,
+    replaceState,
+    ...options,
+  });
+}
 ```
