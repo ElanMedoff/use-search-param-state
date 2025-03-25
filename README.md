@@ -416,7 +416,7 @@ import { useSearchParams } from "react-router";
 import {
   useSearchParamState as _useSearchParamState,
   UseSearchParamStateOptions,
-} from "./package/index.ts";
+} from "use-search-param-state";
 
 function useURLSearchParams() {
   const [urlSearchParams] = useSearchParams();
@@ -430,19 +430,84 @@ export function useSearchParamState<TVal>(
 ) {
   const [, setSearchParams] = useSearchParams();
 
-  function pushState(urlSearchParams: URLSearchParams) {
+  function pushURLSearchParams(urlSearchParams: URLSearchParams) {
     setSearchParams(urlSearchParams);
   }
 
-  function replaceState(urlSearchParams: URLSearchParams) {
+  function replaceURLSearchParams(urlSearchParams: URLSearchParams) {
     setSearchParams(urlSearchParams);
   }
 
   return _useSearchParamState(searchParam, initialState, {
     useURLSearchParams,
-    pushState,
-    replaceState,
+    pushURLSearchParams,
+    replaceURLSearchParams,
     ...options,
   });
+}
+```
+
+### Hooking into the Next.js Pages router
+
+```ts
+import {
+  useSearchParamState as _useSearchParamState,
+  UseSearchParamStateOptions,
+} from "use-search-param-state";
+import { useRouter } from "next/router";
+import { NextPageContext, InferGetServerSidePropsType } from "next";
+import { stringify } from "querystring";
+
+function useURLSearchParams() {
+  const router = useRouter();
+  return new URLSearchParams(stringify(router.query));
+}
+
+export function useSearchParamState<TVal>(
+  searchParam: string,
+  initialState: TVal,
+  options: UseSearchParamStateOptions<TVal> = {},
+) {
+  const router = useRouter();
+
+  function pushURLSearchParams(urlSearchParams: URLSearchParams) {
+    const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
+    router.push(
+      `${router.pathname}${maybeQuestionmark}${urlSearchParams.toString()}`,
+    );
+  }
+
+  function replaceURLSearchParams(urlSearchParams: URLSearchParams) {
+    const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
+    router.replace(
+      `${router.pathname}${maybeQuestionmark}${urlSearchParams.toString()}`,
+    );
+  }
+
+  return _useSearchParamState(searchParam, initialState, {
+    useURLSearchParams,
+    pushURLSearchParams,
+    replaceURLSearchParams,
+    ...options,
+  });
+}
+
+function Page({
+  serverSideSearch,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const [count, setCount] = useSearchParamState("count", 0, {
+    serverSideURLSearchParams: new URLSearchParams(serverSideSearch),
+  });
+}
+
+export function getServerSideProps(ctx: NextPageContext) {
+  const dummyURL = new URL(ctx.req?.url ?? "", "http://a.com");
+  const serverSideSearch = dummyURL.search;
+
+  return {
+    props: {
+      serverSideSearch,
+    },
+  };
 }
 ```
