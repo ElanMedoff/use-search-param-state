@@ -51,7 +51,6 @@ function Demo() {
   const schema = z.number();
   const [counterState, setCounterState] = useSearchParamState("counter", 0, {
     validate: z.number().parse,
-    deleteEmptySearchParam: true,
   });
 }
 ```
@@ -407,44 +406,6 @@ const [list, setList] = useSearchParamState<number[]>("list", [], {
     return currList.join("_");
   },
 });
-```
-
-### Hooking into React Router v6.0.0+
-
-```ts
-import { useSearchParams } from "react-router";
-import {
-  useSearchParamState as _useSearchParamState,
-  UseSearchParamStateOptions,
-} from "use-search-param-state";
-
-function useURLSearchParams() {
-  const [urlSearchParams] = useSearchParams();
-  return urlSearchParams;
-}
-
-export function useSearchParamState<TVal>(
-  searchParam: string,
-  initialState: TVal,
-  options: UseSearchParamStateOptions<TVal>,
-) {
-  const [, setSearchParams] = useSearchParams();
-
-  function pushURLSearchParams(urlSearchParams: URLSearchParams) {
-    setSearchParams(urlSearchParams);
-  }
-
-  function replaceURLSearchParams(urlSearchParams: URLSearchParams) {
-    setSearchParams(urlSearchParams);
-  }
-
-  return _useSearchParamState(searchParam, initialState, {
-    useURLSearchParams,
-    pushURLSearchParams,
-    replaceURLSearchParams,
-    ...options,
-  });
-}
 ```
 
 ### Hooking into the Next.js Pages router
