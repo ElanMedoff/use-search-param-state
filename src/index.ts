@@ -12,11 +12,10 @@ import {
   defaultPushURLSearchParams,
   defaultReplaceURLSearchParams,
   defaultGetURLSearchParams,
-  // useIsFirstRender,
 } from "./helpers";
 import { buildUseURLSearchParams } from "./build-use-url-search-params";
 
-interface Options<TVal> {
+interface CommonOptions {
   /**
    * `onError` defaults to the following function:
    *
@@ -30,19 +29,9 @@ interface Options<TVal> {
    * @returns
    */
   onError?: (error: unknown) => void;
+}
 
-  /**
-   * When passed, `serverSideURLSearchParams` will be used when `window` is `undefined` to
-   * access the URL search param. This is useful for generating content on the server,
-   * i.e. with Next.js or Remix.
-   *
-   * `serverSideURLSearchParams` has no default.
-   *
-   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
-   * object for more info.
-   */
-  serverSideURLSearchParams?: URLSearchParams;
-
+interface ReadOptions<TVal> {
   /**
    * `sanitize` defaults to the following function:
    *
@@ -102,21 +91,19 @@ interface Options<TVal> {
   validate?: (unvalidated: unknown) => TVal;
 
   /**
-   * `stringify` defaults to the following function:
+   * When passed, `serverSideURLSearchParams` will be used when `window` is `undefined` to
+   * access the URL search param. This is useful for generating content on the server,
+   * i.e. with Next.js or Remix.
    *
-   * ```ts
-   * export function defaultStringify<TVal>(valToStringify: TVal) {
-   *   // avoid wrapping strings in quotes
-   *   if (typeof valToStringify === "string") return valToStringify;
-   *   return JSON.stringify(valToStringify);
-   * }
-   * ```
+   * `serverSideURLSearchParams` has no default.
    *
-   * @param `valToStringify` The search param to stringify before setting it in the URL.
-   * @returns The stringified search param.
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
+   * object for more info.
    */
-  stringify?: (valToStringify: TVal) => string;
+  serverSideURLSearchParams?: URLSearchParams;
+}
 
+interface WriteOptions<TVal> {
   /**
    * When setting the search param, if `deleteEmptySearchParam` is set to `true` and
    * `isEmptySearchParam` returns `true`, the search param will be deleted from the URL.
@@ -188,38 +175,51 @@ interface Options<TVal> {
   replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
 
   /**
-   * If the search param state resolves to `null`, the URL is replaced with the search
-   * param set as the `initialState` option.
+   * `stringify` defaults to the following function:
    *
-   * `enableSetInitialSearchParam` defaults to `true`
+   * ```ts
+   * export function defaultStringify<TVal>(valToStringify: TVal) {
+   *   // avoid wrapping strings in quotes
+   *   if (typeof valToStringify === "string") return valToStringify;
+   *   return JSON.stringify(valToStringify);
+   * }
+   * ```
+   *
+   * @param `valToStringify` The search param to stringify before setting it in the URL.
+   * @returns The stringified search param.
    */
-  enableSetInitialSearchParam?: boolean;
+  stringify?: (valToStringify: TVal) => string;
+}
 
-  /**
-   * If `true`, when setting the search param, the updated URL will replace the top item
-   * in the history stack instead of pushing to it.
-   *
-   * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState)
-   * for more info.
-   */
-  replace?: boolean;
+type UseSearchParamStateOptions<TVal> = CommonOptions &
+  ReadOptions<TVal> &
+  WriteOptions<TVal> & {
+    /**
+     * A React hook to return the current URL. This hook is expected to re-render when the
+     * URL changes.
+     *
+     * The hook to pass will depend on your routing library. A basic `useURLSearchParams`
+     * hook is exported by `use-search-param-state/use-url-search-params` for your
+     * convenience.
+     *
+     * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
+     * `'use-search-param-state/use-url-search-params'`
+     *
+     * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
+     * object for more info.
+     */
+    useURLSearchParams?: () => URLSearchParams;
 
-  /**
-   * A React hook to return the current URL. This hook is expected to re-render when the
-   * URL changes.
-   *
-   * The hook to pass will depend on your routing library. A basic `useURLSearchParams`
-   * hook is exported by `use-search-param-state/use-url-search-params` for your
-   * convenience.
-   *
-   * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
-   * `'use-search-param-state/use-url-search-params'`
-   *
-   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
-   * object for more info.
-   */
-  useURLSearchParams?: () => URLSearchParams;
+    /**
+     * If the search param state resolves to `null`, the URL is replaced with the search
+     * param set as the `initialState` option.
+     *
+     * `enableSetInitialSearchParam` defaults to `true`
+     */
+    enableSetInitialSearchParam?: boolean;
+  };
 
+interface FunctionOptions {
   /**
    * A function to return the current URL object.
    *
@@ -235,41 +235,21 @@ interface Options<TVal> {
   getURLSearchParams?: () => URLSearchParams;
 }
 
-interface CommonOptions<TVal> {
-  onError?: Options<TVal>["onError"];
-}
-
-interface ReadOptions<TVal> {
-  sanitize?: Options<TVal>["sanitize"];
-  parse?: Options<TVal>["parse"];
-  validate?: Options<TVal>["validate"];
-  serverSideURLSearchParams?: Options<TVal>["serverSideURLSearchParams"];
-}
-
-interface WriteOptions<TVal> {
-  deleteEmptySearchParam?: Options<TVal>["deleteEmptySearchParam"];
-  isEmptySearchParam?: Options<TVal>["isEmptySearchParam"];
-  pushURLSearchParams?: Options<TVal>["pushURLSearchParams"];
-  replaceURLSearchParams?: Options<TVal>["replaceURLSearchParams"];
-  stringify?: Options<TVal>["stringify"];
-}
-
-type UseSearchParamStateOptions<TVal> = CommonOptions<TVal> &
+type GetSearchParamOptions<TVal> = CommonOptions &
   ReadOptions<TVal> &
-  WriteOptions<TVal> & {
-    useURLSearchParams?: Options<TVal>["useURLSearchParams"];
-    enableSetInitialSearchParam?: Options<TVal>["enableSetInitialSearchParam"];
-  };
+  FunctionOptions;
 
-type GetSearchParamOptions<TVal> = CommonOptions<TVal> &
-  ReadOptions<TVal> & {
-    getURLSearchParams?: Options<TVal>["getURLSearchParams"];
-  };
-
-type SetSearchParamOptions<TVal> = CommonOptions<TVal> &
-  WriteOptions<TVal> & {
-    getURLSearchParams?: Options<TVal>["getURLSearchParams"];
-    replace?: Options<TVal>["replace"];
+type SetSearchParamOptions<TVal> = CommonOptions &
+  WriteOptions<TVal> &
+  FunctionOptions & {
+    /**
+     * If `true`, when setting the search param, the updated URL will replace the top item
+     * in the history stack instead of pushing to it.
+     *
+     * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState)
+     * for more info.
+     */
+    replace?: boolean;
   };
 
 function useSearchParamState<TVal>(
@@ -296,7 +276,7 @@ function useSearchParamState<TVal>(
    */
   options: UseSearchParamStateOptions<TVal> = {},
 ) {
-  // const isFirstRender = useIsFirstRender();
+  const isFirstRender = React.useRef(true);
   const useURLSearchParams =
     options.useURLSearchParams ?? buildUseURLSearchParams();
   const urlSearchParams = useURLSearchParams();
@@ -364,7 +344,7 @@ function useSearchParamState<TVal>(
   const setSearchParam = React.useCallback(
     (
       val: TVal | ((currVal: TVal) => TVal),
-      { replace = false }: { replace: Options<TVal>["replace"] } = {
+      { replace = false }: { replace: boolean } = {
         replace: false,
       },
     ) => {
@@ -402,14 +382,15 @@ function useSearchParamState<TVal>(
   );
 
   React.useEffect(() => {
-    // if (!isFirstRender) return;
+    if (!isFirstRender.current) return;
+    isFirstRender.current = false;
+
     if (searchParamVal == null && enableSetInitialSearchParam) {
       setSearchParam(getInitialState(), { replace: true });
     }
   }, [
     enableSetInitialSearchParam,
     getInitialState,
-    // isFirstRender,
     searchParamVal,
     setSearchParam,
   ]);
@@ -421,7 +402,7 @@ function _maybeGetURL({
   serverSideURLSearchParams,
   urlSearchParams,
 }: {
-  serverSideURLSearchParams: Options<unknown>["serverSideURLSearchParams"];
+  serverSideURLSearchParams: ReadOptions<unknown>["serverSideURLSearchParams"];
   urlSearchParams: URLSearchParams;
 }) {
   if (isWindowUndefined()) {
@@ -523,11 +504,11 @@ function _getSearchParam<TVal>({
 }: {
   searchParam: string;
   urlSearchParams: URLSearchParams;
-  serverSideURLSearchParams: Options<TVal>["serverSideURLSearchParams"];
-  sanitize: Required<Options<TVal>>["sanitize"];
-  parse: Required<Options<TVal>>["parse"];
-  validate: Required<Options<TVal>>["validate"];
-  onError: Required<Options<TVal>>["onError"];
+  serverSideURLSearchParams: ReadOptions<TVal>["serverSideURLSearchParams"];
+  sanitize: Required<ReadOptions<TVal>>["sanitize"];
+  parse: Required<ReadOptions<TVal>>["parse"];
+  validate: Required<ReadOptions<TVal>>["validate"];
+  onError: Required<CommonOptions>["onError"];
 }) {
   try {
     const maybeURLSearchParams = _maybeGetURL({
@@ -564,19 +545,23 @@ function _setSearchParam<TVal>({
   replaceURLSearchParams,
   deleteEmptySearchParam,
   isEmptySearchParam,
-  onError,
   stringify,
+  onError,
 }: {
   searchParam: string;
   searchParamValToSet: TVal;
   replace: boolean;
   urlSearchParams: URLSearchParams;
-  pushURLSearchParams: Required<Options<TVal>>["pushURLSearchParams"];
-  replaceURLSearchParams: Required<Options<TVal>>["replaceURLSearchParams"];
-  deleteEmptySearchParam: Required<Options<TVal>>["deleteEmptySearchParam"];
-  isEmptySearchParam: Required<Options<TVal>>["isEmptySearchParam"];
-  onError: Required<Options<TVal>>["onError"];
-  stringify: Required<Options<TVal>>["stringify"];
+  pushURLSearchParams: Required<WriteOptions<TVal>>["pushURLSearchParams"];
+  replaceURLSearchParams: Required<
+    WriteOptions<TVal>
+  >["replaceURLSearchParams"];
+  deleteEmptySearchParam: Required<
+    WriteOptions<TVal>
+  >["deleteEmptySearchParam"];
+  isEmptySearchParam: Required<WriteOptions<TVal>>["isEmptySearchParam"];
+  stringify: Required<WriteOptions<TVal>>["stringify"];
+  onError: Required<CommonOptions>["onError"];
 }) {
   const pushOrReplaceState = replace
     ? replaceURLSearchParams

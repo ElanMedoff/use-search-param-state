@@ -386,7 +386,30 @@ interface SetSearchParamOptions<TVal> {
 
 ## Recipes
 
-### Hooking into React Router
+### Kitchen sink
+
+```ts
+/*
+ * - `parse`/`stringify` the `list` serach param as `?list=1_2_3` instead of `?list=%5B1%2C2%2C3%5D`
+ * - `validate` the parsed list as an array of numbers
+ * - delete the `list` search param when the current list has a length of 0
+ */
+const [list, setList] = useSearchParamState<number[]>("list", [], {
+  deleteEmptySearchParam: true,
+  isEmptySearchParam: (currList) => {
+    return currList.length === 0;
+  },
+  parse: (unparsed) => {
+    return unparsed.split("_").map((val) => Number(val));
+  },
+  validate: z.array(z.number()).parse,
+  stringify: (currList) => {
+    return currList.join("_");
+  },
+});
+```
+
+### Hooking into React Router v6.0.0+
 
 ```ts
 import { useSearchParams } from "react-router";

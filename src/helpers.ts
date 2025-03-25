@@ -1,15 +1,5 @@
 import React from "react";
 
-export function useIsFirstRender(): boolean {
-  const [isFirstRender, setIsFirstRender] = React.useState(true);
-
-  React.useEffect(() => {
-    setIsFirstRender(false);
-  }, []);
-
-  return isFirstRender;
-}
-
 export function useStableCallback<TCb extends (...args: any[]) => any>(
   cb: TCb,
 ): TCb {
@@ -65,7 +55,9 @@ export function defaultPushURLSearchParams(urlSearchParams: URLSearchParams) {
   );
 }
 
-export function defaultReplaceURLSearchParams(urlSearchParams: URLSearchParams) {
+export function defaultReplaceURLSearchParams(
+  urlSearchParams: URLSearchParams,
+) {
   const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
   window.history.replaceState(
     {},
