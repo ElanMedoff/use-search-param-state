@@ -1,7 +1,5 @@
-// @ts-check
-
 /** @type { import("eslint").Linter.Config } */
-const config = {
+module.exports = {
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended-type-checked",
@@ -17,7 +15,7 @@ const config = {
   },
   plugins: ["@typescript-eslint", "jest"],
   ignorePatterns: [
-    "**/.eslintrc.js",
+    "**/.eslintrc.cjs",
     "**/tsup.config.ts",
     "**/jest.config.js",
     "**/.prettierrc.js",
@@ -26,6 +24,9 @@ const config = {
     "@typescript-eslint/no-non-null-assertion": "warn",
     "@typescript-eslint/unbound-method": "off",
     "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unsafe-return": "warn",
+    "@typescript-eslint/no-unsafe-argument": "warn",
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "error",
     "jest/no-disabled-tests": "error",
@@ -36,5 +37,3 @@ const config = {
     },
   },
 };
-
-module.exports = config;
