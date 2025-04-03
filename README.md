@@ -7,7 +7,7 @@ A hook to synchronize React state with URL search params.
 [![downloads per week](https://img.shields.io/npm/dw/use-search-param-state)](https://www.npmjs.com/package/use-search-param-state)
 [![package quality](https://packagequality.com/shield/use-search-param-state.svg)](https://packagequality.com/#?package=use-search-param-state)
 [![license](https://img.shields.io/npm/l/use-search-param-state)](https://github.com/ElanMedoff/use-search-param-state/blob/master/LICENSE)
-[![dependencies](https://img.shields.io/badge/dependencies%20-%200%20-%20green)](https://github.com/ElanMedoff/use-search-param-state/blob/master/package.json)
+[![dependencies](https://img.shields.io/badge/dependencies%20-%201%20-%20green)](https://github.com/ElanMedoff/use-search-param-state/blob/master/package.json)
 
 <!-- a hack to get around github sanitizing styles from markdown  -->
 <br>
@@ -99,7 +99,7 @@ The primary difference between `useSearchParamState` and `getSearchParam`/`setSe
 
 In React components, prefer to use `useSearchParamState`. When the search param needs to be read or set outside React, `getSearchParam`/`setSearchParam` are hook-less alternatives with the same API.
 
-## All options
+## Option reference
 
 ````ts
 interface OptionReference {
@@ -415,6 +415,7 @@ import { useRouter } from "next/router";
 import { NextPageContext, InferGetServerSidePropsType } from "next";
 import { stringify } from "querystring";
 
+// use Next.js's `useRouter` hook to avoid monkeypatching the history object with the default `useURLSearchParams`
 function useURLSearchParams() {
   const router = useRouter();
   return new URLSearchParams(stringify(router.query));
@@ -450,20 +451,20 @@ export function useSearchParamState<TVal>(
 }
 
 function Page({
-  serverSideSearch,
+  serverSideSearchString,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [count, setCount] = useSearchParamState("count", 0, {
-    serverSideURLSearchParams: new URLSearchParams(serverSideSearch),
+    serverSideURLSearchParams: new URLSearchParams(serverSideSearchString),
   });
 }
 
 export function getServerSideProps(ctx: NextPageContext) {
   const dummyURL = new URL(ctx.req?.url ?? "", "http://a.com");
-  const serverSideSearch = dummyURL.search;
+  const serverSideSearchString = dummyURL.search;
 
   return {
     props: {
-      serverSideSearch,
+      serverSideSearchString,
     },
   };
 }
