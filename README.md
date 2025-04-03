@@ -41,7 +41,7 @@ export function useSearchParamState<TVal>(
   initialState: TVal,
   options: UseSearchParamStateOptions<TVal>,
 ) {
-  return useSearchParamState(searchParam, initialState, {
+  return _useSearchParamState(searchParam, initialState, {
     sanitize: yourSanitizer,
     ...options,
   });
@@ -95,14 +95,14 @@ import { useURLSearchParams } from "use-search-param-state/use-url-search-params
 
 `use-search-param-state` exports three main utilities: `useSearchParamState`, `getSearchParam`, and `setSearchParam`.
 
-The primary difference between `useSearchParamState` and `getSearchParam`/`setSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam`/`setSearchParam` are functions. Because of this difference, `useSearchParamState` is able to react to URL changes and always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. Similarly, `getSearchParam` will not force `getSearchParam` to re-evaluate.
+The primary difference between `useSearchParamState` and `getSearchParam`/`setSearchParam` is that `useSearchParamState` is a hook, while `getSearchParam`/`setSearchParam` are functions. Because of this difference, `useSearchParamState` is able to react to URL changes and always return the up-to-date search param value, while `getSearchParam` provides a snapshot of the search param value at the time when it was called. Similarly, `setSearchParam` will not force `getSearchParam` to re-evaluate.
 
 In React components, prefer to use `useSearchParamState`. When the search param needs to be read or set outside React, `getSearchParam`/`setSearchParam` are hook-less alternatives with the same API.
 
 ## All options
 
 ````ts
-interface AllOptions<TVal> {
+interface OptionReference {
   /**
    * `onError` defaults to the following function:
    *
@@ -116,18 +116,6 @@ interface AllOptions<TVal> {
    * @returns
    */
   onError?: (error: unknown) => void;
-
-  /**
-   * When passed, `serverSideURLSearchParams` will be used when `window` is `undefined` to
-   * access the URL search param. This is useful for generating content on the server,
-   * i.e. with Next.js or Remix.
-   *
-   * `serverSideURLSearchParams` has no default.
-   *
-   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
-   * object for more info.
-   */
-  serverSideURLSearchParams?: URLSearchParams;
 
   /**
    * `sanitize` defaults to the following function:
@@ -188,20 +176,16 @@ interface AllOptions<TVal> {
   validate?: (unvalidated: unknown) => TVal;
 
   /**
-   * `stringify` defaults to the following function:
+   * When passed, `serverSideURLSearchParams` will be used when `window` is `undefined` to
+   * access the URL search param. This is useful for generating content on the server,
+   * i.e. with Next.js or Remix.
    *
-   * ```ts
-   * export function defaultStringify<TVal>(valToStringify: TVal) {
-   *   // avoid wrapping strings in quotes
-   *   if (typeof valToStringify === "string") return valToStringify;
-   *   return JSON.stringify(valToStringify);
-   * }
-   * ```
+   * `serverSideURLSearchParams` has no default.
    *
-   * @param `valToStringify` The search param to stringify before setting it in the URL.
-   * @returns The stringified search param.
+   * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
+   * object for more info.
    */
-  stringify?: (valToStringify: TVal) => string;
+  serverSideURLSearchParams?: URLSearchParams;
 
   /**
    * When setting the search param, if `deleteEmptySearchParam` is set to `true` and
@@ -274,29 +258,24 @@ interface AllOptions<TVal> {
   replaceURLSearchParams?: (urlSearchParams: URLSearchParams) => void;
 
   /**
-   * If the search param state resolves to `null`, the URL is replaced with the search
-   * param set as the `initialState` option.
+   * `stringify` defaults to the following function:
    *
-   * `enableSetInitialSearchParam` defaults to `true`
-   */
-  enableSetInitialSearchParam?: boolean;
-
-  /**
-   * If `true`, when setting the search param, the updated URL will replace the top item
-   * in the history stack instead of pushing to it.
+   * ```ts
+   * export function defaultStringify<TVal>(valToStringify: TVal) {
+   *   // avoid wrapping strings in quotes
+   *   if (typeof valToStringify === "string") return valToStringify;
+   *   return JSON.stringify(valToStringify);
+   * }
+   * ```
    *
-   * See MDN's documentation on [replaceURLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceURLSearchParams)
-   * for more info.
+   * @param `valToStringify` The search param to stringify before setting it in the URL.
+   * @returns The stringified search param.
    */
-  replace?: boolean;
+  stringify?: (valToStringify: TVal) => string;
 
   /**
    * A React hook to return the current URL. This hook is expected to re-render when the
    * URL changes.
-   *
-   * The hook to pass will depend on your routing library. A basic `useURLSearchParams`
-   * hook is exported by `use-search-param-state/use-url-search-params` for your
-   * convenience.
    *
    * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
    * `'use-search-param-state/use-url-search-params'`
@@ -305,6 +284,14 @@ interface AllOptions<TVal> {
    * object for more info.
    */
   useURLSearchParams?: () => URLSearchParams;
+
+  /**
+   * If the search param state resolves to `null`, the URL is replaced with the search
+   * param set as the `initialState` option.
+   *
+   * `enableSetInitialSearchParam` defaults to `true`
+   */
+  enableSetInitialSearchParam?: boolean;
 
   /**
    * A function to return the current URL object.
@@ -319,6 +306,15 @@ interface AllOptions<TVal> {
    * object for more info.
    */
   getURLSearchParams?: () => URLSearchParams;
+
+  /**
+   * If `true`, when setting the search param, the updated URL will replace the top item
+   * in the history stack instead of pushing to it.
+   *
+   * See MDN's documentation on [replaceState](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState)
+   * for more info.
+   */
+  replace?: boolean;
 }
 ````
 

@@ -15,9 +15,12 @@
 - (Breaking) Internal refactor to remove context: `SearchParamStateProvider`
 - (Breaking) When the search param value resolves to `null`, replace the URL with the search param set to stringified initial state.
 - New `enableSetInitialSearchParam` option to control this behavior.
+- (Breaking) The `pushState` option is replaced with `pushURLSearchParams?: (urlSearchParams: URLSearchParams) => void;`
+- New `replaceURLSearchParams` option with the same function signature.
+- (Breaking) Remove the `rollbackOnError` option, now the default behavior.
 - New `replaceState` option passed to `setState` returned by `useSearchParamState`.
-- The `serverSideURL: string` option is replaced with `serverSideURLSearchParam: URLSearchParams`
-
+- (Breaking) The `serverSideURL: string` option is replaced with `serverSideURLSearchParam: URLSearchParams`
+- New `useURLSearchParams` export to allow consumers to adapt the package to their routing library.
 - New `getSearchParam` function, a non-reactive search param getter.
 - New `setSearchParam` function, a non-reactive search param setter.
 - New option `useURL` to let the user adapt the package for their own routing library.

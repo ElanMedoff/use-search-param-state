@@ -198,10 +198,6 @@ type UseSearchParamStateOptions<TVal> = CommonOptions &
      * A React hook to return the current URL. This hook is expected to re-render when the
      * URL changes.
      *
-     * The hook to pass will depend on your routing library. A basic `useURLSearchParams`
-     * hook is exported by `use-search-param-state/use-url-search-params` for your
-     * convenience.
-     *
      * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
      * `'use-search-param-state/use-url-search-params'`
      *
@@ -295,7 +291,8 @@ function useSearchParamState<TVal>(
     options.isEmptySearchParam ?? defaultIsEmptySearchParam;
   const validateOption = options.validate ?? defaultValidate;
   const onErrorOption = options.onError ?? defaultOnError;
-  const { serverSideURLSearchParams } = options;
+  const { serverSideURLSearchParams: serverSideURLSearchParamsOption } =
+    options;
 
   // We need to return referentially stable values from `useSearchParamState` so the consumer can pass them to dep arrays.
   // This requires wrapping `searchParamVal` in a `useMemo` (since the value may not be a primitive),
@@ -316,6 +313,9 @@ function useSearchParamState<TVal>(
   const validate = useStableCallback(validateOption);
   const onError = useStableCallback(onErrorOption);
   const getInitialState = useStableValue(initialState);
+  const getServerSideURLSearchParamsOption = useStableValue(
+    serverSideURLSearchParamsOption,
+  );
 
   const searchParamVal = React.useMemo(
     () =>
@@ -326,14 +326,14 @@ function useSearchParamState<TVal>(
         searchParam,
         validate,
         parse,
-        serverSideURLSearchParams,
+        serverSideURLSearchParams: getServerSideURLSearchParamsOption(),
       }),
     [
+      getServerSideURLSearchParamsOption,
       onError,
       parse,
       sanitize,
       searchParam,
-      serverSideURLSearchParams,
       urlSearchParams,
       validate,
     ],
@@ -423,8 +423,6 @@ function getSearchParam<TVal>(
   searchParam: string,
   /**
    * Options passed by a particular instance of `getSearchParam`.
-   *
-   * When an option is passed to both `getSearchParam` and `buildGetSearchParam`, only the option passed to `getSearchParam` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
    */
   options: GetSearchParamOptions<TVal> = {},
 ) {
@@ -461,8 +459,6 @@ function setSearchParam<TVal>(
   searchParamValToSet: TVal,
   /**
    * Options passed by a particular instance of `setSearchParam`.
-   *
-   * When an option is passed to both `setSearchParam` and `buildSetSearchParam`, only the option passed to `setSearchParam` is respected. The exception is an `onError` option passed to both, in which case both `onError`s are called.
    */
   options: SetSearchParamOptions<TVal> = {},
 ) {
