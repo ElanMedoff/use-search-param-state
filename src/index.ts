@@ -198,8 +198,7 @@ type UseSearchParamStateOptions<TVal> = CommonOptions &
      * A React hook to return the current URL. This hook is expected to re-render when the
      * URL changes.
      *
-     * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
-     * `'use-search-param-state/use-url-search-params'`
+     * `useURLSearchParams` defaults to an internal hook.
      *
      * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
      * object for more info.
@@ -273,9 +272,6 @@ function useSearchParamState<TVal>(
   options: UseSearchParamStateOptions<TVal> = {},
 ) {
   const isFirstRender = React.useRef(true);
-  const useURLSearchParams =
-    options.useURLSearchParams ?? buildUseURLSearchParams();
-  const urlSearchParams = useURLSearchParams();
 
   const stringifyOption = options.stringify ?? defaultStringify;
   const parseOption = options.parse ?? defaultParse;
@@ -293,6 +289,11 @@ function useSearchParamState<TVal>(
   const onErrorOption = options.onError ?? defaultOnError;
   const { serverSideURLSearchParams: serverSideURLSearchParamsOption } =
     options;
+  const useURLSearchParams =
+    options.useURLSearchParams ?? buildUseURLSearchParams();
+  const urlSearchParams = useURLSearchParams(
+    serverSideURLSearchParamsOption?.toString() ?? "",
+  );
 
   // We need to return referentially stable values from `useSearchParamState` so the consumer can pass them to dep arrays.
   // This requires wrapping `searchParamVal` in a `useMemo` (since the value may not be a primitive),
@@ -398,7 +399,7 @@ function useSearchParamState<TVal>(
   return [defaultedSearchParamVal, setSearchParam] as const;
 }
 
-function _maybeGetURL({
+function _maybeGetURLSearchParams({
   serverSideURLSearchParams,
   urlSearchParams,
 }: {
@@ -507,7 +508,7 @@ function _getSearchParam<TVal>({
   onError: Required<CommonOptions>["onError"];
 }) {
   try {
-    const maybeURLSearchParams = _maybeGetURL({
+    const maybeURLSearchParams = _maybeGetURLSearchParams({
       serverSideURLSearchParams,
       urlSearchParams,
     });
