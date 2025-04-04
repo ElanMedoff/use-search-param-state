@@ -8,6 +8,13 @@
 <!---->
 <!-- ### Fixed -->
 
+## 3.0.1 - 2025-04-04
+
+### Fixed
+
+- Memoize `URLSearchParams` returned by `useURLSearchParams`
+- Use `serverSideURLSearchParams` in the `getServerSnapshot` in `useURLSearchParams`'s `useSyncExternalStore`
+
 ## 3.0.0 - 2025-03-22
 
 ### Changed
