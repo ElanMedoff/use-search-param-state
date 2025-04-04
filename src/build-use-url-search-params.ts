@@ -1,3 +1,4 @@
+import React from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 
 // Structure this as a function so that the history monkeypatching only runs when explicitly
@@ -39,14 +40,17 @@ function buildUseURLSearchParams() {
 
   const getSnapshot = () => window.location.search;
 
-  return function useSearchParams() {
+  return function useURLSearchParams(serverSideSearchString: string) {
     const searchString = useSyncExternalStore(
       subscribeToEventUpdates,
       getSnapshot,
-      getSnapshot,
+      () => serverSideSearchString,
     );
 
-    return new URLSearchParams(searchString);
+    return React.useMemo(
+      () => new URLSearchParams(searchString),
+      [searchString],
+    );
   };
 }
 export { buildUseURLSearchParams };

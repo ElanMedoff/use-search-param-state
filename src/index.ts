@@ -198,9 +198,6 @@ type UseSearchParamStateOptions<TVal> = CommonOptions &
      * A React hook to return the current URL. This hook is expected to re-render when the
      * URL changes.
      *
-     * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
-     * `'use-search-param-state/use-url-search-params'`
-     *
      * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
      * object for more info.
      */
@@ -273,9 +270,6 @@ function useSearchParamState<TVal>(
   options: UseSearchParamStateOptions<TVal> = {},
 ) {
   const isFirstRender = React.useRef(true);
-  const useURLSearchParams =
-    options.useURLSearchParams ?? buildUseURLSearchParams();
-  const urlSearchParams = useURLSearchParams();
 
   const stringifyOption = options.stringify ?? defaultStringify;
   const parseOption = options.parse ?? defaultParse;
@@ -293,6 +287,11 @@ function useSearchParamState<TVal>(
   const onErrorOption = options.onError ?? defaultOnError;
   const { serverSideURLSearchParams: serverSideURLSearchParamsOption } =
     options;
+  const useURLSearchParams =
+    options.useURLSearchParams ?? buildUseURLSearchParams();
+  const urlSearchParams = useURLSearchParams(
+    serverSideURLSearchParamsOption?.toString() ?? "",
+  );
 
   // We need to return referentially stable values from `useSearchParamState` so the consumer can pass them to dep arrays.
   // This requires wrapping `searchParamVal` in a `useMemo` (since the value may not be a primitive),
@@ -320,13 +319,13 @@ function useSearchParamState<TVal>(
   const searchParamVal = React.useMemo(
     () =>
       _getSearchParam<TVal>({
-        urlSearchParams,
         sanitize,
         onError,
         searchParam,
         validate,
         parse,
         serverSideURLSearchParams: getServerSideURLSearchParamsOption(),
+        urlSearchParams,
       }),
     [
       getServerSideURLSearchParamsOption,
@@ -339,9 +338,11 @@ function useSearchParamState<TVal>(
     ],
   );
 
-  const defaultedSearchParamVal = searchParamVal ?? getInitialState();
+  const [searchParamState, _setSearchParamState] = React.useState(
+    searchParamVal ?? getInitialState(),
+  );
 
-  const setSearchParam = React.useCallback(
+  const setSearchParamState = React.useCallback(
     (
       val: TVal | ((currVal: TVal) => TVal),
       { replace = false }: { replace: boolean } = {
@@ -350,11 +351,12 @@ function useSearchParamState<TVal>(
     ) => {
       let valToSet: TVal;
       if (val instanceof Function) {
-        valToSet = val(defaultedSearchParamVal);
+        valToSet = val(searchParamState);
       } else {
         valToSet = val;
       }
 
+      _setSearchParamState(valToSet);
       _setSearchParam<TVal>({
         searchParamValToSet: valToSet,
         stringify,
@@ -369,36 +371,60 @@ function useSearchParamState<TVal>(
       });
     },
     [
-      defaultedSearchParamVal,
       deleteEmptySearchParam,
       isEmptySearchParam,
       onError,
       pushURLSearchParams,
       replaceURLSearchParams,
       searchParam,
+      searchParamState,
       stringify,
       urlSearchParams,
     ],
   );
 
   React.useEffect(() => {
-    if (!isFirstRender.current) return;
-    isFirstRender.current = false;
+    const currVal = _getSearchParam<TVal>({
+      sanitize,
+      onError,
+      searchParam,
+      validate,
+      parse,
+      serverSideURLSearchParams: getServerSideURLSearchParamsOption(),
+      urlSearchParams,
+    });
 
-    if (searchParamVal == null && enableSetInitialSearchParam) {
-      setSearchParam(getInitialState(), { replace: true });
+    _setSearchParamState(currVal ?? getInitialState());
+  }, [
+    getInitialState,
+    getServerSideURLSearchParamsOption,
+    onError,
+    parse,
+    sanitize,
+    searchParam,
+    urlSearchParams,
+    validate,
+  ]);
+
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+
+      if (searchParamVal == null && enableSetInitialSearchParam) {
+        setSearchParamState(getInitialState(), { replace: true });
+      }
     }
   }, [
     enableSetInitialSearchParam,
     getInitialState,
     searchParamVal,
-    setSearchParam,
+    setSearchParamState,
   ]);
 
-  return [defaultedSearchParamVal, setSearchParam] as const;
+  return [searchParamState, setSearchParamState] as const;
 }
 
-function _maybeGetURL({
+function _maybeGetURLSearchParams({
   serverSideURLSearchParams,
   urlSearchParams,
 }: {
@@ -507,7 +533,7 @@ function _getSearchParam<TVal>({
   onError: Required<CommonOptions>["onError"];
 }) {
   try {
-    const maybeURLSearchParams = _maybeGetURL({
+    const maybeURLSearchParams = _maybeGetURLSearchParams({
       serverSideURLSearchParams,
       urlSearchParams,
     });

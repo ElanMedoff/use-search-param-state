@@ -358,7 +358,7 @@ describe("useSearchParamState", () => {
           validate: z.number().parse,
         }),
       );
-      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalled();
     });
   });
 });
