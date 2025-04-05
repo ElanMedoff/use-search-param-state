@@ -195,8 +195,8 @@ type UseSearchParamStateOptions<TVal> = CommonOptions &
   ReadOptions<TVal> &
   WriteOptions<TVal> & {
     /**
-     * A React hook to return the current URL. This hook is expected to re-render when the
-     * URL changes.
+     * A React hook to return a URLSearchParams object representing the current search
+     * params. Note that this hook _must_ return a referentially stable value.
      *
      * `useURLSearchParams` defaults to an internal hook.
      *
@@ -340,6 +340,14 @@ function useSearchParamState<TVal>(
     ],
   );
 
+  // A simpler version of `useSearchParamState` would simply read from the URL, return its value,
+  // set the URL, and on a URL change, force a re-render to read and return  the latest value. This was the
+  // approach initially taken in v3.0.0, but there were some performance concerns - waiting for the URL
+  // to update was too slow for fast-changing search params.
+  //
+  // An alternate approach is to use React state, which can be updated without waiting for the URL itself to
+  // change. This approach requires keeping the React state in sync with the URL, but the performance improvements
+  // make the additional complexity a worthwhile trade-off.
   const [searchParamState, _setSearchParamState] = React.useState(
     searchParamVal ?? getInitialState(),
   );
@@ -358,8 +366,7 @@ function useSearchParamState<TVal>(
         valToSet = val;
       }
 
-      _setSearchParamState(valToSet);
-      _setSearchParam<TVal>({
+      const { success } = _setSearchParam<TVal>({
         searchParamValToSet: valToSet,
         stringify,
         onError,
@@ -371,6 +378,11 @@ function useSearchParamState<TVal>(
         replace,
         urlSearchParams,
       });
+
+      // Setting the URL is not syncronous, so waiting for _setSearchParam is still fast
+      if (success) {
+        _setSearchParamState(valToSet);
+      }
     },
     [
       deleteEmptySearchParam,
@@ -396,6 +408,8 @@ function useSearchParamState<TVal>(
       urlSearchParams,
     });
 
+    // Update the local state when the URL is changed by a source outside this package.
+    // In practice, this means that `urlSearchParams` has an updated value.
     _setSearchParamState(currVal ?? getInitialState());
   }, [
     getInitialState,
@@ -586,7 +600,7 @@ function _setSearchParam<TVal>({
   isEmptySearchParam: Required<WriteOptions<TVal>>["isEmptySearchParam"];
   stringify: Required<WriteOptions<TVal>>["stringify"];
   onError: Required<CommonOptions>["onError"];
-}) {
+}): { success: boolean } {
   const pushOrReplaceState = replace
     ? replaceURLSearchParams
     : pushURLSearchParams;
@@ -601,14 +615,16 @@ function _setSearchParam<TVal>({
     if (deleteEmptySearchParam && isEmptySearchParam(searchParamValToSet)) {
       urlSearchParams.delete(searchParam);
       pushOrReplaceState(urlSearchParams);
-      return;
+      return { success: true };
     }
 
     const stringified = stringify(searchParamValToSet);
     urlSearchParams.set(searchParam, stringified);
     pushOrReplaceState(urlSearchParams);
+    return { success: true };
   } catch (error) {
     onError(error);
+    return { success: false };
   }
 }
 
