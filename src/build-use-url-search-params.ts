@@ -39,6 +39,9 @@ function buildUseURLSearchParams() {
   };
 
   return function useURLSearchParams(serverSideSearchString: string) {
+    const getSnapshot = () => window.location.search;
+    const getServerSnapshot = () => serverSideSearchString;
+
     const searchString = useSyncExternalStore(
       subscribeToEventUpdates,
       getSnapshot,
