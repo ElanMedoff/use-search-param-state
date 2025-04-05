@@ -321,13 +321,13 @@ function useSearchParamState<TVal>(
   const searchParamVal = React.useMemo(
     () =>
       _getSearchParam<TVal>({
+        urlSearchParams,
         sanitize,
         onError,
         searchParam,
         validate,
         parse,
         serverSideURLSearchParams: getServerSideURLSearchParamsOption(),
-        urlSearchParams,
       }),
     [
       getServerSideURLSearchParamsOption,
