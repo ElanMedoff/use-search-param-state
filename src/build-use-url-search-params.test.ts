@@ -18,7 +18,7 @@ describe("useURLSearchParams", () => {
     it.each(["hashchange", "popstate"] as const)(
       "should update the state on the %s event",
       (eventName) => {
-        const { result } = renderHook(() => useURLSearchParams());
+        const { result } = renderHook(() => useURLSearchParams(""));
         expect(result.current.toString()).toBe("counter=1");
 
         jest.spyOn(window, "location", "get").mockImplementation(() => {
@@ -38,7 +38,7 @@ describe("useURLSearchParams", () => {
     it.each(["pushState", "replaceState"] as const)(
       "should update the state on the %s event",
       (eventName) => {
-        const { result } = renderHook(() => useURLSearchParams());
+        const { result } = renderHook(() => useURLSearchParams(""));
         expect(result.current.toString()).toBe("counter=1");
 
         jest.spyOn(window, "location", "get").mockImplementation(() => {
