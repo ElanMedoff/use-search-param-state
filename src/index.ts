@@ -195,8 +195,8 @@ type UseSearchParamStateOptions<TVal> = CommonOptions &
   ReadOptions<TVal> &
   WriteOptions<TVal> & {
     /**
-     * A React hook to return the current URL. This hook is expected to re-render when the
-     * URL changes.
+     * A React hook to return a URLSearchParams object representing the current search
+     * params. Note that this hook _must_ return a referentially stable value.
      *
      * `useURLSearchParams` defaults to an internal hook.
      *
@@ -340,9 +340,19 @@ function useSearchParamState<TVal>(
     ],
   );
 
-  const defaultedSearchParamVal = searchParamVal ?? getInitialState();
+  // A simpler version of `useSearchParamState` would simply read from the URL, return its value,
+  // set the URL, and on a URL change, force a re-render to read and return  the latest value. This was the
+  // approach initially taken in v3.0.0, but there were some performance concerns - waiting for the URL
+  // to update was too slow for fast-changing search params.
+  //
+  // An alternate approach is to use React state, which can be updated without waiting for the URL itself to
+  // change. This approach requires keeping the React state in sync with the URL, but the performance improvements
+  // make the additional complexity a worthwhile trade-off.
+  const [searchParamState, _setSearchParamState] = React.useState(
+    searchParamVal ?? getInitialState(),
+  );
 
-  const setSearchParam = React.useCallback(
+  const setSearchParamState = React.useCallback(
     (
       val: TVal | ((currVal: TVal) => TVal),
       { replace = false }: { replace: boolean } = {
@@ -351,12 +361,12 @@ function useSearchParamState<TVal>(
     ) => {
       let valToSet: TVal;
       if (val instanceof Function) {
-        valToSet = val(defaultedSearchParamVal);
+        valToSet = val(searchParamState);
       } else {
         valToSet = val;
       }
 
-      _setSearchParam<TVal>({
+      const { success } = _setSearchParam<TVal>({
         searchParamValToSet: valToSet,
         stringify,
         onError,
@@ -368,35 +378,66 @@ function useSearchParamState<TVal>(
         replace,
         urlSearchParams,
       });
+
+      // Setting the URL is not syncronous, so waiting for _setSearchParam is still fast
+      if (success) {
+        _setSearchParamState(valToSet);
+      }
     },
     [
-      defaultedSearchParamVal,
       deleteEmptySearchParam,
       isEmptySearchParam,
       onError,
       pushURLSearchParams,
       replaceURLSearchParams,
       searchParam,
+      searchParamState,
       stringify,
       urlSearchParams,
     ],
   );
 
   React.useEffect(() => {
-    if (!isFirstRender.current) return;
-    isFirstRender.current = false;
+    const currVal = _getSearchParam<TVal>({
+      sanitize,
+      onError,
+      searchParam,
+      validate,
+      parse,
+      serverSideURLSearchParams: getServerSideURLSearchParamsOption(),
+      urlSearchParams,
+    });
 
-    if (searchParamVal == null && enableSetInitialSearchParam) {
-      setSearchParam(getInitialState(), { replace: true });
+    // Update the local state when the URL is changed by a source outside this package.
+    // In practice, this means that `urlSearchParams` has an updated value.
+    _setSearchParamState(currVal ?? getInitialState());
+  }, [
+    getInitialState,
+    getServerSideURLSearchParamsOption,
+    onError,
+    parse,
+    sanitize,
+    searchParam,
+    urlSearchParams,
+    validate,
+  ]);
+
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+
+      if (searchParamVal == null && enableSetInitialSearchParam) {
+        setSearchParamState(getInitialState(), { replace: true });
+      }
     }
   }, [
     enableSetInitialSearchParam,
     getInitialState,
     searchParamVal,
-    setSearchParam,
+    setSearchParamState,
   ]);
 
-  return [defaultedSearchParamVal, setSearchParam] as const;
+  return [searchParamState, setSearchParamState] as const;
 }
 
 function _maybeGetURLSearchParams({
@@ -559,7 +600,7 @@ function _setSearchParam<TVal>({
   isEmptySearchParam: Required<WriteOptions<TVal>>["isEmptySearchParam"];
   stringify: Required<WriteOptions<TVal>>["stringify"];
   onError: Required<CommonOptions>["onError"];
-}) {
+}): { success: boolean } {
   const pushOrReplaceState = replace
     ? replaceURLSearchParams
     : pushURLSearchParams;
@@ -574,14 +615,16 @@ function _setSearchParam<TVal>({
     if (deleteEmptySearchParam && isEmptySearchParam(searchParamValToSet)) {
       urlSearchParams.delete(searchParam);
       pushOrReplaceState(urlSearchParams);
-      return;
+      return { success: true };
     }
 
     const stringified = stringify(searchParamValToSet);
     urlSearchParams.set(searchParam, stringified);
     pushOrReplaceState(urlSearchParams);
+    return { success: true };
   } catch (error) {
     onError(error);
+    return { success: false };
   }
 }
 

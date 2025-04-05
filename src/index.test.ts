@@ -131,6 +131,7 @@ describe("useSearchParamState", () => {
         });
         expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getPushStateURLString()).toBe("counter=10");
+        expect(result.current[0]).toBe(10);
       });
 
       it("should not override unrelated search params", () => {
@@ -144,6 +145,7 @@ describe("useSearchParamState", () => {
         });
         expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
         expect(getPushStateURLString()).toBe("name=elan&counter=10");
+        expect(result.current[0]).toBe(10);
       });
     });
 
@@ -164,6 +166,7 @@ describe("useSearchParamState", () => {
           result.current[1](10);
         });
         expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
+        expect(result.current[0]).toBe(0);
       });
     });
 
@@ -179,6 +182,7 @@ describe("useSearchParamState", () => {
       });
       expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
       expect(getPushStateURLString()).toBe("counter=1");
+      expect(result.current[0]).toBe(1);
     });
 
     it("should accept a replace option", () => {
@@ -194,6 +198,7 @@ describe("useSearchParamState", () => {
       expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
       expect(helpers.defaultReplaceURLSearchParams).toHaveBeenCalledTimes(1);
       expect(getReplaceStateURLString()).toBe("counter=2");
+      expect(result.current[0]).toBe(2);
     });
   });
 
@@ -216,6 +221,7 @@ describe("useSearchParamState", () => {
         `https://elanmed.dev/?name=${JSON.stringify(["a", "b", "c"])}`,
       );
       expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(result.current[0]).toStrictEqual(["a", "b", "c"]);
     });
 
     it("when a sanitize option is passed, it should use it", () => {
@@ -279,6 +285,7 @@ describe("useSearchParamState", () => {
       expect(getPushStateURLString()).toBe("");
       expect(getPushStateURLString()).not.toBe("name=");
       expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(result.current[0]).toBe("");
     });
 
     it("when a isEmptySearchParam option is passed, it should use it", () => {
@@ -298,6 +305,7 @@ describe("useSearchParamState", () => {
       expect(getPushStateURLString()).toBe("name=");
       expect(getPushStateURLString()).not.toBe("");
       expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(1);
+      expect(result.current[0]).toBe("");
     });
 
     it("when a pushURLSearchParams option is passed, it should use it", () => {
@@ -316,6 +324,7 @@ describe("useSearchParamState", () => {
       });
       expect(pushURLSearchParams).toHaveBeenCalledTimes(1);
       expect(helpers.defaultPushURLSearchParams).toHaveBeenCalledTimes(0);
+      expect(result.current[0]).toBe(1);
     });
 
     it("when a replaceURLSearchParams option is passed, it should use it", () => {
@@ -358,7 +367,7 @@ describe("useSearchParamState", () => {
           validate: z.number().parse,
         }),
       );
-      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalled();
     });
   });
 });
