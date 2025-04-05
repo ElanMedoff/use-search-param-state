@@ -274,8 +274,8 @@ interface OptionReference {
   stringify?: (valToStringify: TVal) => string;
 
   /**
-   * A React hook to return the current URL. This hook is expected to re-render when the
-   * URL changes.
+   * A React hook to return a URLSearchParams object representing the current search
+   * params. Note that this hook _must_ return a referentially stable value.
    *
    * `useURLSearchParams` defaults to an internal hook.
    *
@@ -426,6 +426,8 @@ export function useSearchParamState<TVal>(
     const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
     router.push(
       `${router.pathname}${maybeQuestionmark}${urlSearchParams.toString()}`,
+      undefined,
+      { shallow: true },
     );
   }
 
@@ -433,6 +435,8 @@ export function useSearchParamState<TVal>(
     const maybeQuestionmark = urlSearchParams.toString().length ? "?" : "";
     router.replace(
       `${router.pathname}${maybeQuestionmark}${urlSearchParams.toString()}`,
+      undefined,
+      { shallow: true },
     );
   }
 
