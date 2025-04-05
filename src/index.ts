@@ -198,6 +198,8 @@ type UseSearchParamStateOptions<TVal> = CommonOptions &
      * A React hook to return the current URL. This hook is expected to re-render when the
      * URL changes.
      *
+     * `useURLSearchParams` defaults to an internal hook.
+     *
      * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
      * object for more info.
      */

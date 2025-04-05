@@ -38,13 +38,11 @@ function buildUseURLSearchParams() {
     };
   };
 
-  const getSnapshot = () => window.location.search;
-
   return function useURLSearchParams(serverSideSearchString: string) {
     const searchString = useSyncExternalStore(
       subscribeToEventUpdates,
       getSnapshot,
-      () => serverSideSearchString,
+      getServerSnapshot,
     );
 
     return React.useMemo(

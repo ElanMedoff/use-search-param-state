@@ -277,8 +277,7 @@ interface OptionReference {
    * A React hook to return the current URL. This hook is expected to re-render when the
    * URL changes.
    *
-   * `useURLSearchParams` defaults to the `useURLSearchParams` hook exported at
-   * `'use-search-param-state/use-url-search-params'`
+   * `useURLSearchParams` defaults to an internal hook.
    *
    * See MDN's documentation on the [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams)
    * object for more info.
@@ -407,6 +406,7 @@ const [list, setList] = useSearchParamState<number[]>("list", [], {
 ### Hooking into the Next.js Pages router
 
 ```ts
+import React from "react";
 import {
   useSearchParamState as _useSearchParamState,
   UseSearchParamStateOptions,
@@ -414,12 +414,6 @@ import {
 import { useRouter } from "next/router";
 import { NextPageContext, InferGetServerSidePropsType } from "next";
 import { stringify } from "querystring";
-
-// use Next.js's `useRouter` hook to avoid monkeypatching the history object with the default `useURLSearchParams`
-function useURLSearchParams() {
-  const router = useRouter();
-  return new URLSearchParams(stringify(router.query));
-}
 
 export function useSearchParamState<TVal>(
   searchParam: string,
@@ -443,7 +437,6 @@ export function useSearchParamState<TVal>(
   }
 
   return _useSearchParamState(searchParam, initialState, {
-    useURLSearchParams,
     pushURLSearchParams,
     replaceURLSearchParams,
     ...options,
