@@ -8,6 +8,12 @@
 <!---->
 <!-- ### Fixed -->
 
+## 3.0.2 - 2025-04-04
+
+### Fixed
+
+- Leverage React state to improve performance.
+
 ## 3.0.1 - 2025-04-04
 
 ### Fixed
